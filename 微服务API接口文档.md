@@ -1886,4 +1886,616 @@ Authorization: Bearer <token>
 
 **请求头**: `Authorization: Bearer <token>` (商家角色)
 
-**
+**请求参数**:
+```json
+{
+  "orderId": 1,             // 订单ID
+  "status": 1               // 新状态：1-已接单，4-已拒绝
+}
+```
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "message": "订单状态更新成功"
+}
+```
+
+#### 5.1.9 获取商家订单列表
+
+**接口路径**: `GET /api/order/merchant-list?store_id=1&status=1&page=1&page_size=10`
+
+**请求头**: `Authorization: Bearer <token>` (商家角色)
+
+**查询参数**:
+- `store_id`: 店铺ID
+- `status`: 可选，订单状态筛选
+- `page`: 页码
+- `page_size`: 每页大小
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "data": {
+    "orders": [
+      {
+        "id": 1,
+        "userId": 1,
+        "userName": "testuser",
+        "totalPrice": 58.50,
+        "status": 1,
+        "deliveryAddress": "北京市朝阳区",
+        "createdAt": "2024-01-01T12:00:00"
+      }
+    ]
+  }
+}
+```
+
+#### 5.1.10 获取用户订单历史
+
+**接口路径**: `GET /api/order/user-history?status=3&start_time=2024-01-01&end_time=2024-01-31&page=1&page_size=10`
+
+**请求头**: `Authorization: Bearer <token>` (用户角色)
+
+**查询参数**:
+- `status`: 可选，订单状态筛选
+- `start_time`: 可选，开始时间
+- `end_time`: 可选，结束时间
+- `page`: 页码
+- `page_size`: 每页大小
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "data": {
+    "orders": [
+      {
+        "id": 1,
+        "storeId": 1,
+        "storeName": "美味餐厅",
+        "totalPrice": 58.50,
+        "status": 3,
+        "createdAt": "2024-01-01T12:00:00"
+      }
+    ]
+  }
+}
+```
+
+#### 5.1.11 获取用户当前订单
+
+**接口路径**: `GET /api/order/user-current?page=1&page_size=10`
+
+**请求头**: `Authorization: Bearer <token>` (用户角色)
+
+**查询参数**:
+- `page`: 页码
+- `page_size`: 每页大小
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "data": {
+    "orders": [
+      {
+        "id": 1,
+        "storeId": 1,
+        "storeName": "美味餐厅",
+        "totalPrice": 58.50,
+        "status": 2,
+        "estimatedDeliveryTime": "2024-01-01T13:00:00"
+      }
+    ]
+  }
+}
+```
+
+#### 5.1.12 获取订单商品详情
+
+**接口路径**: `GET /api/order/{orderId}/items`
+
+**请求头**: `Authorization: Bearer <token>`
+
+**路径参数**:
+- `orderId`: 订单ID
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "productId": 1,
+        "productName": "宫保鸡丁",
+        "quantity": 2,
+        "price": 28.50,
+        "subtotal": 57.00
+      }
+    ]
+  }
+}
+```
+
+#### 5.1.13 获取订单详情
+
+**接口路径**: `GET /api/order/{orderId}`
+
+**请求头**: `Authorization: Bearer <token>`
+
+**路径参数**:
+- `orderId`: 订单ID
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "userId": 1,
+    "storeId": 1,
+    "riderId": 1,
+    "totalPrice": 58.50,
+    "discountAmount": 5.00,
+    "finalPrice": 53.50,
+    "status": 3,
+    "deliveryAddress": "北京市朝阳区",
+    "createdAt": "2024-01-01T12:00:00",
+    "deliveredAt": "2024-01-01T12:30:00"
+  }
+}
+```
+
+### 5.2 购物车管理
+
+#### 5.2.1 添加商品到购物车
+
+**接口路径**: `POST /api/cart/add`
+
+**请求头**: `Authorization: Bearer <token>` (用户角色)
+
+**请求参数**:
+```json
+{
+  "productId": 1,           // 商品ID
+  "quantity": 2             // 数量
+}
+```
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "message": "商品已添加到购物车"
+}
+```
+
+#### 5.2.2 查看购物车
+
+**接口路径**: `GET /api/cart/view`
+
+**请求头**: `Authorization: Bearer <token>` (用户角色)
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "productId": 1,
+        "productName": "宫保鸡丁",
+        "quantity": 2,
+        "price": 28.50,
+        "imageUrl": "http://example.com/product.jpg",
+        "storeId": 1,
+        "storeName": "美味餐厅"
+      }
+    ],
+    "totalAmount": 57.00,
+    "totalItems": 2
+  }
+}
+```
+
+#### 5.2.3 更新购物车商品数量
+
+**接口路径**: `PUT /api/cart/update`
+
+**请求头**: `Authorization: Bearer <token>` (用户角色)
+
+**请求参数**:
+```json
+{
+  "productId": 1,           // 商品ID
+  "quantity": 3             // 新数量
+}
+```
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "message": "购物车已更新"
+}
+```
+
+#### 5.2.4 删除购物车商品
+
+**接口路径**: `PUT /api/cart/delete`
+
+**请求头**: `Authorization: Bearer <token>` (用户角色)
+
+**请求参数**:
+```json
+{
+  "productId": 1            // 商品ID
+}
+```
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "message": "商品已从购物车移除"
+}
+```
+
+#### 5.2.5 清空购物车
+
+**接口路径**: `DELETE /api/cart/remove`
+
+**请求头**: `Authorization: Bearer <token>` (用户角色)
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "message": "购物车已清空"
+}
+```
+
+### 5.3 商品详情
+
+#### 5.3.1 获取商品详情
+
+**接口路径**: `GET /api/products/{productId}`
+
+**路径参数**:
+- `productId`: 商品ID
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "宫保鸡丁",
+    "description": "经典川菜",
+    "price": 28.50,
+    "category": "川菜",
+    "stock": 100,
+    "image": "http://example.com/product.jpg",
+    "rating": 4.8,
+    "storeId": 1,
+    "storeName": "美味餐厅",
+    "storeLocation": "北京市朝阳区"
+  }
+}
+```
+
+#### 5.3.2 根据请求体获取商品详情
+
+**接口路径**: `POST /api/products/info`
+
+**请求参数**:
+```json
+{
+  "id": 1                   // 商品ID
+}
+```
+
+**响应数据**: 同上
+
+#### 5.3.3 获取商品评价列表
+
+**接口路径**: `GET /api/products/{productId}/reviews?page=1&page_size=10`
+
+**路径参数**:
+- `productId`: 商品ID
+
+**查询参数**:
+- `page`: 页码，默认1
+- `page_size`: 每页大小，默认10
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "userId": 1,
+      "username": "testuser",
+      "userAvatar": "http://example.com/avatar.jpg",
+      "rating": 5,
+      "comment": "非常好吃！",
+      "images": "http://example.com/review.jpg",
+      "createdAt": "2024-01-01T12:00:00"
+    }
+  ]
+}
+```
+
+#### 5.3.4 获取店铺商品列表
+
+**接口路径**: `GET /api/products/store/{storeId}?category=川菜&page=1&page_size=10`
+
+**路径参数**:
+- `storeId`: 店铺ID
+
+**查询参数**:
+- `category`: 可选，商品分类筛选
+- `page`: 页码，默认1
+- `page_size`: 每页大小，默认10
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "data": {
+    "products": [
+      {
+        "id": 1,
+        "name": "宫保鸡丁",
+        "price": 28.50,
+        "category": "川菜",
+        "image": "http://example.com/product.jpg",
+        "rating": 4.8,
+        "stock": 100
+      }
+    ],
+    "total": 25
+  }
+}
+```
+
+### 5.4 消息聊天
+
+#### 5.4.1 获取聊天记录
+
+**接口路径**: `POST /api/messages/history`
+
+**请求头**: `Authorization: Bearer <token>`
+
+**请求参数**:
+```json
+{
+  "receiverId": 1,          // 接收方ID
+  "receiverRole": "merchant", // 接收方角色：user/merchant/rider/admin
+  "page": 1,                // 页码
+  "pageSize": 20            // 每页大小
+}
+```
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "id": 1,
+        "senderId": 1,
+        "senderRole": "user",
+        "receiverId": 2,
+        "receiverRole": "merchant",
+        "content": "您好，请问这个商品还有库存吗？",
+        "messageType": "text",
+        "isRead": true,
+        "createdAt": "2024-01-01T12:00:00"
+      }
+    ],
+    "currentPage": 1,
+    "pageSize": 20,
+    "totalCount": 1
+  }
+}
+```
+
+#### 5.4.2 发送消息
+
+**接口路径**: `POST /api/messages/send`
+
+**请求头**: `Authorization: Bearer <token>`
+
+**请求参数**:
+```json
+{
+  "receiverId": 2,          // 接收方ID
+  "receiverRole": "merchant", // 接收方角色
+  "content": "您好，请问这个商品还有库存吗？"  // 消息内容
+}
+```
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "senderId": 1,
+    "senderRole": "user",
+    "receiverId": 2,
+    "receiverRole": "merchant",
+    "content": "您好，请问这个商品还有库存吗？",
+    "messageType": "text",
+    "isRead": false,
+    "createdAt": "2024-01-01T12:00:00"
+  }
+}
+```
+
+#### 5.4.3 获取会话列表
+
+**接口路径**: `GET /api/messages/conversations?page=1&page_size=10`
+
+**请求头**: `Authorization: Bearer <token>`
+
+**查询参数**:
+- `page`: 页码，默认1
+- `page_size`: 每页大小，默认10
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "data": {
+    "conversations": [
+      {
+        "contactId": 2,
+        "contactRole": "merchant",
+        "lastMessageTime": "2024-01-01T12:00:00",
+        "unreadCount": 3
+      }
+    ]
+  }
+}
+```
+
+#### 5.4.4 标记消息为已读
+
+**接口路径**: `PUT /api/messages/conversations/{conversationId}/read`
+
+**请求头**: `Authorization: Bearer <token>`
+
+**路径参数**:
+- `conversationId`: 会话ID（对方用户ID）
+
+**响应数据**:
+```json
+{
+  "success": true,
+  "message": "消息已标记为已读"
+}
+```
+
+---
+
+## 6. 状态码说明
+
+### 6.1 订单状态
+
+| 状态码 | 状态名称 | 描述 |
+|-------|---------|------|
+| 0 | 待接单 | 订单已创建，等待商家接单 |
+| 1 | 已接单 | 商家已接单，准备中 |
+| 2 | 配送中 | 骑手已取餐，正在配送 |
+| 3 | 已送达 | 订单已完成 |
+| 4 | 已取消 | 订单已取消 |
+
+### 6.2 用户角色
+
+| 角色 | 描述 |
+|------|------|
+| user | 普通用户 |
+| merchant | 商家 |
+| rider | 骑手 |
+| admin | 管理员 |
+
+### 6.3 店铺/商品状态
+
+| 状态码 | 描述 |
+|-------|------|
+| 0 | 关闭/下架 |
+| 1 | 营业/上架 |
+
+### 6.4 骑手接单模式
+
+| 模式码 | 描述 |
+|-------|------|
+| 0 | 手动接单 |
+| 1 | 自动接单 |
+
+---
+
+## 7. 错误码说明
+
+### 7.1 通用错误码
+
+| 错误码 | 错误信息 | 描述 |
+|-------|---------|------|
+| 400 | 请求参数错误 | 请求参数格式不正确或缺少必要参数 |
+| 401 | 未授权 | 用户未登录或token无效 |
+| 403 | 权限不足 | 用户无权限访问该资源 |
+| 404 | 资源不存在 | 请求的资源不存在 |
+| 500 | 服务器内部错误 | 服务器处理请求时发生错误 |
+
+### 7.2 业务错误码
+
+| 错误码 | 错误信息 | 描述 |
+|-------|---------|------|
+| 1001 | 用户名或手机号已存在 | 注册时用户名或手机号重复 |
+| 1002 | 手机号或密码错误 | 登录时凭据不正确 |
+| 1003 | 该用户已登录 | 重复登录 |
+| 2001 | 商品不存在或已下架 | 商品ID无效或商品已下架 |
+| 2002 | 库存不足 | 商品库存不够 |
+| 3001 | 订单不存在 | 订单ID无效 |
+| 3002 | 订单状态不允许此操作 | 订单当前状态不支持该操作 |
+| 4001 | 文件格式不支持 | 上传的文件格式不正确 |
+| 4002 | 文件大小超限 | 上传的文件过大 |
+
+---
+
+## 8. 开发注意事项
+
+### 8.1 认证机制
+
+1. 所有需要认证的接口都需要在请求头中携带JWT Token
+2. Token格式：`Authorization: Bearer <token>`
+3. Token有效期为24小时
+4. 同一用户同时只能有一个有效登录会话
+
+### 8.2 分页参数
+
+1. 分页参数统一使用`page`（页码，从1开始）和`pageSize`（每页大小）
+2. 默认页码为1，默认每页大小为10
+3. 最大每页大小限制为100
+
+### 8.3 时间格式
+
+1. 所有时间字段统一使用ISO 8601格式：`YYYY-MM-DDTHH:mm:ss`
+2. 时区统一使用东八区（Asia/Shanghai）
+
+### 8.4 文件上传
+
+1. 支持的图片格式：jpg、png、gif
+2. 单个文件最大大小：5MB
+3. 上传成功后返回相对路径，需要拼接域名使用
+
+### 8.5 数据校验
+
+1. 所有输入参数都会进行服务端校验
+2. 手机号格式：11位数字
+3. 密码长度：6-20个字符
+4. 用户名长度：2-20个字符
+
+---
+
+## 9. 更新日志
+
+### v1.0.0 (2024-01-01)
+- 初始版本发布
+- 完成用户服务、商家服务、骑手服务、管理员服务和网关服务的所有API接口
+- 支持用户注册登录、店铺管理、商品管理、订单管理、购物车、消息聊天等功能
+
+---
+
+**文档最后更新时间**: 2024-01-01
+
+**技术支持**: Baoleme开发团队
