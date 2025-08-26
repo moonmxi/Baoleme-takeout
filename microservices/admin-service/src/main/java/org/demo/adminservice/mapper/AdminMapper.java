@@ -35,23 +35,16 @@ public interface AdminMapper extends BaseMapper<Admin> {
      * @param endId 结束ID
      * @return List<User> 用户列表
      */
-    @Select("<script>" +
-            "SELECT * FROM user WHERE 1=1" +
-            "<if test='keyword != null and keyword != \"\">" +
-            " AND (username LIKE CONCAT('%', #{keyword}, '%') OR phone LIKE CONCAT('%', #{keyword}, '%'))" +
-            "</if>" +
-            "<if test='gender != null and gender != \"\">" +
-            " AND gender = #{gender}" +
-            "</if>" +
-            "<if test='startId != null'>" +
-            " AND id >= #{startId}" +
-            "</if>" +
-            "<if test='endId != null'>" +
-            " AND id <= #{endId}" +
-            "</if>" +
-            " ORDER BY created_at DESC" +
-            " LIMIT #{pageSize} OFFSET #{offset}" +
-            "</script>")
+    @Select("""
+            SELECT * FROM user 
+            WHERE 1=1
+            AND (#{keyword} IS NULL OR #{keyword} = '' OR username LIKE CONCAT('%', #{keyword}, '%') OR phone LIKE CONCAT('%', #{keyword}, '%'))
+            AND (#{gender} IS NULL OR #{gender} = '' OR gender = #{gender})
+            AND (#{startId} IS NULL OR id >= #{startId})
+            AND (#{endId} IS NULL OR id <= #{endId})
+            ORDER BY created_at DESC
+            LIMIT #{pageSize} OFFSET #{offset}
+            """)
     List<User> getAllUsersPaged(@Param("page") int page, @Param("pageSize") int pageSize, 
                                 @Param("keyword") String keyword, @Param("gender") String gender, 
                                 @Param("startId") Long startId, @Param("endId") Long endId, 
@@ -71,32 +64,19 @@ public interface AdminMapper extends BaseMapper<Admin> {
      * @param endBalance 结束余额
      * @return List<Rider> 骑手列表
      */
-    @Select("<script>" +
-            "SELECT * FROM rider WHERE 1=1" +
-            "<if test='keyword != null and keyword != \"\">" +
-            " AND (username LIKE CONCAT('%', #{keyword}, '%') OR phone LIKE CONCAT('%', #{keyword}, '%'))" +
-            "</if>" +
-            "<if test='startId != null'>" +
-            " AND id >= #{startId}" +
-            "</if>" +
-            "<if test='endId != null'>" +
-            " AND id <= #{endId}" +
-            "</if>" +
-            "<if test='status != null'>" +
-            " AND status = #{status}" +
-            "</if>" +
-            "<if test='dispatchMode != null'>" +
-            " AND dispatch_mode = #{dispatchMode}" +
-            "</if>" +
-            "<if test='startBalance != null'>" +
-            " AND balance >= #{startBalance}" +
-            "</if>" +
-            "<if test='endBalance != null'>" +
-            " AND balance <= #{endBalance}" +
-            "</if>" +
-            " ORDER BY created_at DESC" +
-            " LIMIT #{pageSize} OFFSET #{offset}" +
-            "</script>")
+    @Select("""
+            SELECT * FROM rider 
+            WHERE 1=1
+            AND (#{keyword} IS NULL OR #{keyword} = '' OR username LIKE CONCAT('%', #{keyword}, '%') OR phone LIKE CONCAT('%', #{keyword}, '%'))
+            AND (#{startId} IS NULL OR id >= #{startId})
+            AND (#{endId} IS NULL OR id <= #{endId})
+            AND (#{status} IS NULL OR status = #{status})
+            AND (#{dispatchMode} IS NULL OR dispatch_mode = #{dispatchMode})
+            AND (#{startBalance} IS NULL OR balance >= #{startBalance})
+            AND (#{endBalance} IS NULL OR balance <= #{endBalance})
+            ORDER BY created_at DESC
+            LIMIT #{pageSize} OFFSET #{offset}
+            """)
     List<Rider> getAllRidersPaged(@Param("page") int page, @Param("pageSize") int pageSize, 
                                   @Param("keyword") String keyword, @Param("startId") Long startId, 
                                   @Param("endId") Long endId, @Param("status") Integer status, 
@@ -113,20 +93,15 @@ public interface AdminMapper extends BaseMapper<Admin> {
      * @param endId 结束ID
      * @return List<Merchant> 商家列表
      */
-    @Select("<script>" +
-            "SELECT * FROM merchant WHERE 1=1" +
-            "<if test='keyword != null and keyword != \"\">" +
-            " AND (username LIKE CONCAT('%', #{keyword}, '%') OR phone LIKE CONCAT('%', #{keyword}, '%'))" +
-            "</if>" +
-            "<if test='startId != null'>" +
-            " AND id >= #{startId}" +
-            "</if>" +
-            "<if test='endId != null'>" +
-            " AND id <= #{endId}" +
-            "</if>" +
-            " ORDER BY created_at DESC" +
-            " LIMIT #{pageSize} OFFSET #{offset}" +
-            "</script>")
+    @Select("""
+            SELECT * FROM merchant 
+            WHERE 1=1
+            AND (#{keyword} IS NULL OR #{keyword} = '' OR username LIKE CONCAT('%', #{keyword}, '%') OR phone LIKE CONCAT('%', #{keyword}, '%'))
+            AND (#{startId} IS NULL OR id >= #{startId})
+            AND (#{endId} IS NULL OR id <= #{endId})
+            ORDER BY created_at DESC
+            LIMIT #{pageSize} OFFSET #{offset}
+            """)
     List<Merchant> getAllMerchantsPaged(@Param("page") int page, @Param("pageSize") int pageSize, 
                                         @Param("keyword") String keyword, @Param("startId") Long startId, 
                                         @Param("endId") Long endId, @Param("offset") int offset);
@@ -141,20 +116,15 @@ public interface AdminMapper extends BaseMapper<Admin> {
      * @param status 状态筛选
      * @return List<Store> 店铺列表
      */
-    @Select("<script>" +
-            "SELECT * FROM store WHERE 1=1" +
-            "<if test='keyword != null and keyword != \"\">" +
-            " AND name LIKE CONCAT('%', #{keyword}, '%')" +
-            "</if>" +
-            "<if test='merchantId != null'>" +
-            " AND merchant_id = #{merchantId}" +
-            "</if>" +
-            "<if test='status != null'>" +
-            " AND status = #{status}" +
-            "</if>" +
-            " ORDER BY created_at DESC" +
-            " LIMIT #{pageSize} OFFSET #{offset}" +
-            "</script>")
+    @Select("""
+            SELECT * FROM store 
+            WHERE 1=1
+            AND (#{keyword} IS NULL OR #{keyword} = '' OR name LIKE CONCAT('%', #{keyword}, '%'))
+            AND (#{merchantId} IS NULL OR merchant_id = #{merchantId})
+            AND (#{status} IS NULL OR status = #{status})
+            ORDER BY created_at DESC
+            LIMIT #{pageSize} OFFSET #{offset}
+            """)
     List<Store> getAllStoresPaged(@Param("page") int page, @Param("pageSize") int pageSize, 
                                   @Param("keyword") String keyword, @Param("merchantId") Long merchantId, 
                                   @Param("status") Integer status, @Param("offset") int offset);
@@ -184,29 +154,18 @@ public interface AdminMapper extends BaseMapper<Admin> {
      * @param pageSize 每页大小
      * @return List<Order> 订单列表
      */
-    @Select("<script>" +
-            "SELECT * FROM `order` WHERE 1=1" +
-            "<if test='userId != null'>" +
-            " AND user_id = #{userId}" +
-            "</if>" +
-            "<if test='storeId != null'>" +
-            " AND store_id = #{storeId}" +
-            "</if>" +
-            "<if test='riderId != null'>" +
-            " AND rider_id = #{riderId}" +
-            "</if>" +
-            "<if test='status != null'>" +
-            " AND status = #{status}" +
-            "</if>" +
-            "<if test='createdAt != null'>" +
-            " AND created_at >= #{createdAt}" +
-            "</if>" +
-            "<if test='endedAt != null'>" +
-            " AND ended_at <= #{endedAt}" +
-            "</if>" +
-            " ORDER BY created_at DESC" +
-            " LIMIT #{pageSize} OFFSET #{offset}" +
-            "</script>")
+    @Select("""
+            SELECT * FROM `order` 
+            WHERE 1=1
+            AND (#{userId} IS NULL OR user_id = #{userId})
+            AND (#{storeId} IS NULL OR store_id = #{storeId})
+            AND (#{riderId} IS NULL OR rider_id = #{riderId})
+            AND (#{status} IS NULL OR status = #{status})
+            AND (#{createdAt} IS NULL OR created_at >= #{createdAt})
+            AND (#{endedAt} IS NULL OR ended_at <= #{endedAt})
+            ORDER BY created_at DESC
+            LIMIT #{pageSize} OFFSET #{offset}
+            """)
     List<Order> getAllOrdersPaged(@Param("userId") Long userId, @Param("storeId") Long storeId, 
                                   @Param("riderId") Long riderId, @Param("status") Integer status, 
                                   @Param("createdAt") LocalDateTime createdAt, @Param("endedAt") LocalDateTime endedAt, 
@@ -226,32 +185,19 @@ public interface AdminMapper extends BaseMapper<Admin> {
      * @param endRating 结束评分
      * @return List<Review> 评论列表
      */
-    @Select("<script>" +
-            "SELECT * FROM review WHERE 1=1" +
-            "<if test='userId != null'>" +
-            " AND user_id = #{userId}" +
-            "</if>" +
-            "<if test='storeId != null'>" +
-            " AND store_id = #{storeId}" +
-            "</if>" +
-            "<if test='productId != null'>" +
-            " AND product_id = #{productId}" +
-            "</if>" +
-            "<if test='startTime != null'>" +
-            " AND created_at >= #{startTime}" +
-            "</if>" +
-            "<if test='endTime != null'>" +
-            " AND created_at <= #{endTime}" +
-            "</if>" +
-            "<if test='startRating != null'>" +
-            " AND rating >= #{startRating}" +
-            "</if>" +
-            "<if test='endRating != null'>" +
-            " AND rating <= #{endRating}" +
-            "</if>" +
-            " ORDER BY created_at DESC" +
-            " LIMIT #{pageSize} OFFSET #{offset}" +
-            "</script>")
+    @Select("""
+            SELECT * FROM review 
+            WHERE 1=1
+            AND (#{userId} IS NULL OR user_id = #{userId})
+            AND (#{storeId} IS NULL OR store_id = #{storeId})
+            AND (#{productId} IS NULL OR product_id = #{productId})
+            AND (#{startTime} IS NULL OR created_at >= #{startTime})
+            AND (#{endTime} IS NULL OR created_at <= #{endTime})
+            AND (#{startRating} IS NULL OR rating >= #{startRating})
+            AND (#{endRating} IS NULL OR rating <= #{endRating})
+            ORDER BY created_at DESC
+            LIMIT #{pageSize} OFFSET #{offset}
+            """)
     List<Review> getReviewsByCondition(@Param("userId") Long userId, @Param("storeId") Long storeId, 
                                        @Param("productId") Long productId, @Param("startTime") LocalDateTime startTime, 
                                        @Param("endTime") LocalDateTime endTime, @Param("page") int page, 

@@ -31,14 +31,12 @@ public interface ProductMapper extends BaseMapper<Product> {
      * @param productId 商品ID
      * @return ProductInfoResponse 商品详细信息
      */
-    @Select("<script>" +
-            "SELECT p.id, p.store_id, p.name, p.category, p.price, p.description, " +
+    @Select("SELECT p.id, p.store_id, p.name, p.category, p.price, p.description, " +
             "       p.image, p.stock, p.rating, p.status, p.created_at, " +
             "       s.name as store_name, s.location as store_location " +
             "FROM product p " +
             "LEFT JOIN store s ON p.store_id = s.id " +
-            "WHERE p.id = #{productId} AND p.status = 1 AND s.status = 1" +
-            "</script>")
+            "WHERE p.id = #{productId} AND p.status = 1 AND s.status = 1")
     ProductInfoResponse getProductDetailInfo(@Param("productId") Long productId);
 
     /**
@@ -49,16 +47,14 @@ public interface ProductMapper extends BaseMapper<Product> {
      * @param limit 限制数量
      * @return List<ProductReviewResponse> 商品评价列表
      */
-    @Select("<script>" +
-            "SELECT r.id, r.user_id, r.product_id, r.store_id, r.rating, r.comment, " +
+    @Select("SELECT r.id, r.user_id, r.product_id, r.store_id, r.rating, r.comment, " +
             "       r.image as images, r.created_at, " +
             "       u.username, u.avatar as user_avatar " +
             "FROM review r " +
             "LEFT JOIN user u ON r.user_id = u.id " +
             "WHERE r.product_id = #{productId} " +
             "ORDER BY r.created_at DESC " +
-            "LIMIT #{offset}, #{limit}" +
-            "</script>")
+            "LIMIT #{offset}, #{limit}")
     @Results({
             @Result(property = "images", column = "images", typeHandler = org.apache.ibatis.type.StringTypeHandler.class)
     })
@@ -75,12 +71,10 @@ public interface ProductMapper extends BaseMapper<Product> {
      * @param limit 限制数量
      * @return List<Product> 商品列表
      */
-    @Select("<script>" +
-            "SELECT * FROM product " +
-            "WHERE store_id = #{storeId} AND status = 1" +
-            "<if test='category != null and category != \"\\'> AND category = #{category}</if>" +
-            " ORDER BY created_at DESC LIMIT #{offset}, #{limit}" +
-            "</script>")
+    @Select("SELECT * FROM product " +
+            "WHERE store_id = #{storeId} AND status = 1 " +
+            "AND (#{category} IS NULL OR #{category} = '' OR category = #{category}) " +
+            "ORDER BY created_at DESC LIMIT #{offset}, #{limit}")
     List<Product> getStoreProducts(@Param("storeId") Long storeId,
                                   @Param("category") String category,
                                   @Param("offset") int offset,
@@ -93,11 +87,9 @@ public interface ProductMapper extends BaseMapper<Product> {
      * @param category 商品分类（可选）
      * @return Integer 商品总数
      */
-    @Select("<script>" +
-            "SELECT COUNT(*) FROM product " +
-            "WHERE store_id = #{storeId} AND status = 1" +
-            "<if test='category != null and category != \"\\'> AND category = #{category}</if>" +
-            "</script>")
+    @Select("SELECT COUNT(*) FROM product " +
+            "WHERE store_id = #{storeId} AND status = 1 " +
+            "AND (#{category} IS NULL OR #{category} = '' OR category = #{category})")
     Integer getStoreProductCount(@Param("storeId") Long storeId,
                                 @Param("category") String category);
 
@@ -119,18 +111,15 @@ public interface ProductMapper extends BaseMapper<Product> {
      * @param limit 限制数量
      * @return List<Product> 商品列表
      */
-    @Select("<script>" +
-            "SELECT p.* FROM product p " +
+    @Select("SELECT p.* FROM product p " +
             "LEFT JOIN store s ON p.store_id = s.id " +
-            "WHERE p.status = 1 AND s.status = 1" +
-            "<if test='keyword != null and keyword != \"\\'> " +
-            "  AND (p.name LIKE CONCAT('%', #{keyword}, '%') " +
-            "       OR p.description LIKE CONCAT('%', #{keyword}, '%') " +
-            "       OR p.category LIKE CONCAT('%', #{keyword}, '%'))" +
-            "</if>" +
-            " ORDER BY p.rating DESC, p.created_at DESC " +
-            "LIMIT #{offset}, #{limit}" +
-            "</script>")
+            "WHERE p.status = 1 AND s.status = 1 " +
+            "AND (#{keyword} IS NULL OR #{keyword} = '' OR " +
+            "     p.name LIKE CONCAT('%', #{keyword}, '%') OR " +
+            "     p.description LIKE CONCAT('%', #{keyword}, '%') OR " +
+            "     p.category LIKE CONCAT('%', #{keyword}, '%')) " +
+            "ORDER BY p.rating DESC, p.created_at DESC " +
+            "LIMIT #{offset}, #{limit}")
     List<Product> searchProducts(@Param("keyword") String keyword,
                                 @Param("offset") int offset,
                                 @Param("limit") int limit);

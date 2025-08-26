@@ -7,6 +7,8 @@ server:
 spring:
   application:
     name: gateway-service
+  main:
+    web-application-type: reactive
   
   # 数据库配置 - 网关服务数据库（用于订单协调）
   datasource:

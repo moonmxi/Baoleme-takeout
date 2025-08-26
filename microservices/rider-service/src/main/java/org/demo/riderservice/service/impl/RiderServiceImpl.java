@@ -154,4 +154,23 @@ public class RiderServiceImpl implements RiderService {
             return false;
         }
     }
+
+    /**
+     * 更新骑手头像
+     * 
+     * @param riderId 骑手ID
+     * @param avatarUrl 头像URL，null表示删除头像
+     * @return 是否更新成功
+     */
+    @Override
+    public boolean updateRiderAvatar(Long riderId, String avatarUrl) {
+        try {
+            Rider rider = new Rider();
+            rider.setId(riderId);
+            rider.setAvatar(avatarUrl);
+            return riderMapper.updateById(rider) > 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

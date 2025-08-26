@@ -39,15 +39,13 @@ public interface CartMapper extends BaseMapper<Cart> {
      * @param userId 用户ID
      * @return List<CartResponse> 购物车商品详细信息列表
      */
-    @Select("<script>" +
-            "SELECT c.product_id, p.name as product_name, c.quantity, p.price, p.image as image_url, " +
+    @Select("SELECT c.product_id, p.name as product_name, c.quantity, p.price, p.image as image_url, " +
             "       p.store_id, s.name as store_name " +
             "FROM cart c " +
             "LEFT JOIN product p ON c.product_id = p.id " +
             "LEFT JOIN store s ON p.store_id = s.id " +
             "WHERE c.user_id = #{userId} AND p.status = 1 AND s.status = 1 " +
-            "ORDER BY c.created_at DESC" +
-            "</script>")
+            "ORDER BY c.created_at DESC")
     List<CartResponse> getCartDetailsByUserId(@Param("userId") Long userId);
 
     /**

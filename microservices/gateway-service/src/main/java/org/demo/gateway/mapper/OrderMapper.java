@@ -66,11 +66,9 @@ public interface OrderMapper extends BaseMapper<Order> {
      * @param limit 限制数量
      * @return List<Order> 订单列表
      */
-    @Select("<script>" +
-            "SELECT * FROM `order` WHERE rider_id = #{riderId}" +
-            "<if test='status != null'> AND status = #{status}</if>" +
-            " ORDER BY created_at DESC LIMIT #{offset}, #{limit}" +
-            "</script>")
+    @Select("SELECT * FROM `order` WHERE rider_id = #{riderId} " +
+            "AND (#{status} IS NULL OR status = #{status}) " +
+            "ORDER BY created_at DESC LIMIT #{offset}, #{limit}")
     List<Order> getRiderOrders(@Param("riderId") Long riderId, 
                               @Param("status") Integer status, 
                               @Param("offset") int offset, 
@@ -85,11 +83,9 @@ public interface OrderMapper extends BaseMapper<Order> {
      * @param limit 限制数量
      * @return List<Order> 订单列表
      */
-    @Select("<script>" +
-            "SELECT * FROM `order` WHERE store_id = #{storeId}" +
-            "<if test='status != null'> AND status = #{status}</if>" +
-            " ORDER BY created_at DESC LIMIT #{offset}, #{limit}" +
-            "</script>")
+    @Select("SELECT * FROM `order` WHERE store_id = #{storeId} " +
+            "AND (#{status} IS NULL OR status = #{status}) " +
+            "ORDER BY created_at DESC LIMIT #{offset}, #{limit}")
     List<Order> getStoreOrders(@Param("storeId") Long storeId, 
                               @Param("status") Integer status, 
                               @Param("offset") int offset, 
@@ -119,13 +115,11 @@ public interface OrderMapper extends BaseMapper<Order> {
      * @param limit 限制数量
      * @return List<Order> 订单列表
      */
-    @Select("<script>" +
-            "SELECT * FROM `order` WHERE user_id = #{userId}" +
-            "<if test='status != null'> AND status = #{status}</if>" +
-            "<if test='startTime != null and startTime != \"\\'> AND created_at >= #{startTime}</if>" +
-            "<if test='endTime != null and endTime != \"\\'> AND created_at <= #{endTime}</if>" +
-            " ORDER BY created_at DESC LIMIT #{offset}, #{limit}" +
-            "</script>")
+    @Select("SELECT * FROM `order` WHERE user_id = #{userId} " +
+            "AND (#{status} IS NULL OR status = #{status}) " +
+            "AND (#{startTime} IS NULL OR #{startTime} = '' OR created_at >= #{startTime}) " +
+            "AND (#{endTime} IS NULL OR #{endTime} = '' OR created_at <= #{endTime}) " +
+            "ORDER BY created_at DESC LIMIT #{offset}, #{limit}")
     List<Order> getUserOrdersWithFilter(@Param("userId") Long userId,
                                        @Param("status") Integer status,
                                        @Param("startTime") String startTime,
