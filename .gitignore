@@ -37,6 +37,7 @@ mvnw.cmd
 
 # IDE相关
 .vscode/*
+.trae/*
 !.vscode/extensions.json
 .idea/
 *.suo
