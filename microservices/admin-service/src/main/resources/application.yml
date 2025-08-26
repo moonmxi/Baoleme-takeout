@@ -1,0 +1,51 @@
+# 管理员服务配置文件
+# 配置管理员服务的数据库连接、端口等信息
+
+server:
+  port: 8084
+  servlet:
+    context-path: /admin-service
+
+spring:
+  application:
+    name: admin-service
+  
+  # 数据库配置 - 管理员服务独立数据库
+  datasource:
+    url: jdbc:mysql://localhost:3306/baoleme_admin?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+  # Redis配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 4
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 日志配置
+logging:
+  level:
+    org.demo.adminservice: debug
+    org.springframework.security: debug
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

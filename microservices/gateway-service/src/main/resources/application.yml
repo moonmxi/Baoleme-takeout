@@ -1,0 +1,107 @@
+# 网关服务配置文件
+# 配置API网关的路由规则和服务发现
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service
+  
+  # 数据库配置 - 网关服务数据库（用于订单协调）
+  datasource:
+    url: jdbc:mysql://localhost:3306/baoleme_gateway?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+  # Redis配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  
+  # Spring Cloud Gateway配置
+  cloud:
+    gateway:
+      routes:
+        # 用户服务路由
+        - id: user-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/user/**
+          filters:
+            - StripPrefix=2
+            
+        # 商家服务路由
+        - id: merchant-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/merchant/**,/api/store/**,/api/product/**
+          filters:
+            - StripPrefix=2
+            
+        # 骑手服务路由
+        - id: rider-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/rider/**
+          filters:
+            - StripPrefix=2
+            
+        # 管理员服务路由
+        - id: admin-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/admin/**,/api/stats/**
+          filters:
+            - StripPrefix=2
+            
+        # 订单相关路由（由网关处理）
+        - id: order-service
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/order/**,/api/cart/**,/api/coupon/**,/api/review/**
+          filters:
+            - StripPrefix=1
+      
+      # 全局CORS配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: false
+
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 日志配置
+logging:
+  level:
+    org.demo.gateway: debug
+    org.springframework.cloud.gateway: debug
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
