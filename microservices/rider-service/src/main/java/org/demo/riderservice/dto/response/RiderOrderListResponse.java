@@ -1,4 +1,4 @@
-package org.demo.riderservice.dto.response.rider;
+package org.demo.riderservice.dto.response;
 
 import lombok.Data;
 

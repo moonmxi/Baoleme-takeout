@@ -1,6 +1,6 @@
 /**
  * JWT工具类
- * 提供JWT token的创建、解析和验证功能，支持多角色身份认证
+ * 用于生成和解析JWT令牌
  * 
  * @author Baoleme Team
  * @version 1.0
@@ -18,32 +18,33 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 通用 JWT 工具类，支持多角色身份认证
+ * JWT工具类
+ * 用于生成和解析JWT令牌
  */
 public class JwtUtils {
 
     /**
-     * JWT签名密钥
+     * JWT密钥
      */
-    private static final String SECRET = "baoleme_secret_key_1234567890123456"; // 至少 32 字符
+    private static final String SECRET = "baoleme_secret_key_1234567890123456";
     
     /**
-     * Token过期时间（24小时）
+     * JWT过期时间（24小时）
      */
     private static final long EXPIRE_TIME = 1000 * 60 * 60 * 24;
-
+    
     /**
-     * 签名密钥对象
+     * 签名密钥
      */
     private static final Key KEY = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
 
     /**
-     * 创建JWT token
+     * 创建JWT令牌
      * 
      * @param userId 用户ID
      * @param role 用户角色
      * @param username 用户名
-     * @return JWT token字符串
+     * @return JWT令牌字符串
      */
     public static String createToken(Long userId, String role, String username) {
         Map<String, Object> claims = new HashMap<>();
@@ -62,9 +63,9 @@ public class JwtUtils {
     }
 
     /**
-     * 解析JWT token载荷
+     * 解析JWT令牌载荷
      * 
-     * @param token JWT token字符串
+     * @param token JWT令牌
      * @return 载荷信息Map，解析失败返回null
      */
     public static Map<String, Object> parsePayload(String token) {
@@ -86,9 +87,9 @@ public class JwtUtils {
     }
 
     /**
-     * 检查JWT token是否过期
+     * 检查JWT令牌是否过期
      * 
-     * @param token JWT token字符串
+     * @param token JWT令牌
      * @return true表示已过期，false表示未过期
      */
     public static boolean isExpired(String token) {
