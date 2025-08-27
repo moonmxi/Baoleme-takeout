@@ -121,16 +121,32 @@ public class RiderServiceImpl implements RiderService {
      */
     @Override
     public boolean updateInfo(Rider rider) {
-        try {
-            // 如果密码不为空，需要加密
-            if (rider.getPassword() != null && !rider.getPassword().isEmpty()) {
-                rider.setPassword(passwordEncoder.encode(rider.getPassword()));
-            }
-            
-            return riderMapper.updateById(rider) > 0;
-        } catch (Exception e) {
-            return false;
+        if (rider == null || rider.getId() == null) return false;
+
+        Rider existing = riderMapper.selectById(rider.getId());
+        if (existing == null) return false;
+
+        // 只更新非空字段
+        if (rider.getUsername() != null && !rider.getUsername().isEmpty()) {
+            existing.setUsername(rider.getUsername());
         }
+        if (rider.getPassword() != null && !rider.getPassword().isEmpty()) {
+            existing.setPassword(passwordEncoder.encode(rider.getPassword()));
+        }
+        if (rider.getPhone() != null && !rider.getPhone().isEmpty()) {
+            existing.setPhone(rider.getPhone());
+        }
+        if (rider.getDispatchMode() != null) {
+            existing.setDispatchMode(rider.getDispatchMode());
+        }
+        if (rider.getOrderStatus() != null) {
+            existing.setOrderStatus(rider.getOrderStatus());
+        }
+        if (rider.getAvatar() != null) {
+            existing.setAvatar(rider.getAvatar());
+        }
+
+        return riderMapper.updateById(existing) > 0;
     }
 
     /**

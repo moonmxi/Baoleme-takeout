@@ -98,17 +98,27 @@ public class MerchantServiceImpl implements MerchantService {
      */
     @Override
     public Merchant updateInfo(Merchant merchant) {
-        try {
-            // 如果密码不为空，需要加密
-            if (merchant.getPassword() != null && !merchant.getPassword().isEmpty()) {
-                merchant.setPassword(passwordEncoder.encode(merchant.getPassword()));
-            }
-            
-            int result = merchantMapper.updateById(merchant);
-            return result > 0 ? merchantMapper.selectById(merchant.getId()) : null;
-        } catch (Exception e) {
-            return null;
+        if (merchant == null || merchant.getId() == null) return null;
+
+        Merchant existing = merchantMapper.selectById(merchant.getId());
+        if (existing == null) return null;
+
+        // 只更新非空字段
+        if (merchant.getUsername() != null && !merchant.getUsername().isEmpty()) {
+            existing.setUsername(merchant.getUsername());
         }
+        if (merchant.getPassword() != null && !merchant.getPassword().isEmpty()) {
+            existing.setPassword(passwordEncoder.encode(merchant.getPassword()));
+        }
+        if (merchant.getPhone() != null && !merchant.getPhone().isEmpty()) {
+            existing.setPhone(merchant.getPhone());
+        }
+        if (merchant.getAvatar() != null) {
+            existing.setAvatar(merchant.getAvatar());
+        }
+
+        int result = merchantMapper.updateById(existing);
+        return result > 0 ? merchantMapper.selectById(existing.getId()) : null;
     }
 
     /**
