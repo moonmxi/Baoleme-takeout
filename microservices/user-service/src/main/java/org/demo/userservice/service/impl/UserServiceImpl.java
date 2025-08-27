@@ -188,11 +188,11 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public boolean favoriteStore(Long userId, Long storeId) {
-        try {
-            return userMapper.insertFavorite(userId, storeId) > 0;
-        } catch (Exception e) {
+        if (userMapper.existsFavorite(userId, storeId)) {
+            System.out.println("收藏失败：已收藏该店铺");
             return false;
         }
+        return userMapper.insertFavorite(userId, storeId) > 0;
     }
 
     /**
@@ -201,7 +201,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserFavoriteResponse> getFavoriteStores(Long userId, String type, BigDecimal distance, BigDecimal wishPrice, BigDecimal startRating, BigDecimal endRating, Integer page, Integer pageSize) {
         try {
-            return userMapper.getFavoriteStores(userId, type, distance, wishPrice, startRating, endRating, page, pageSize);
+            int offset = (page - 1) * pageSize;
+            return userMapper.getFavoriteStores(userId, type, distance, wishPrice, startRating, endRating, page, pageSize, offset);
         } catch (Exception e) {
             return new ArrayList<>();
         }
@@ -249,7 +250,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserSearchResponse> searchStores(String keyword, BigDecimal distance, BigDecimal wishPrice, BigDecimal startRating, BigDecimal endRating, Integer page, Integer pageSize) {
         try {
-            return userMapper.searchStores(keyword, distance, wishPrice, startRating, endRating, page, pageSize);
+            int offset = (page - 1) * pageSize;
+            return userMapper.searchStores(keyword, distance, wishPrice, startRating, endRating, page, pageSize, offset);
         } catch (Exception e) {
             return new ArrayList<>();
         }
@@ -300,7 +302,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean updateViewHistory(Long userId, Long storeId, LocalDateTime viewTime) {
         try {
-            return userMapper.updateViewHistory(userId, storeId, viewTime) > 0;
+            return userMapper.addViewHistory(userId, storeId) > 0;
         } catch (Exception e) {
             return false;
         }
@@ -312,7 +314,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserViewHistoryResponse> getViewHistory(Long userId, Integer page, Integer pageSize) {
         try {
-            return userMapper.getViewHistory(userId, page, pageSize);
+            int offset = (page - 1) * pageSize;
+            return userMapper.getViewHistory(userId, page, pageSize, offset);
         } catch (Exception e) {
             return new ArrayList<>();
         }
