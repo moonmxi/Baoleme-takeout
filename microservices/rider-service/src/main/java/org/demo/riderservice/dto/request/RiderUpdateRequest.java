@@ -1,4 +1,4 @@
-package org.demo.riderservice.dto.request.rider;
+package org.demo.riderservice.dto.request;
 
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;

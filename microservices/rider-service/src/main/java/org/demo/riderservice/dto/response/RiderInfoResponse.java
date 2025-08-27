@@ -1,4 +1,4 @@
-package org.demo.riderservice.dto.response.rider;
+package org.demo.riderservice.dto.response;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;

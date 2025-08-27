@@ -3,8 +3,6 @@
 
 server:
   port: 8084
-  servlet:
-    context-path: /admin-service
 
 spring:
   application:
