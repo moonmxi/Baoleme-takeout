@@ -114,11 +114,35 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public boolean updateInfo(User user) {
-        try {
-            return userMapper.updateById(user) > 0;
-        } catch (Exception e) {
-            return false;
+        if (user == null || user.getId() == null) return false;
+
+        User existing = userMapper.selectById(user.getId());
+        if (existing == null) return false;
+
+        // 只更新非空字段
+        if (user.getUsername() != null && !user.getUsername().isEmpty()) {
+            existing.setUsername(user.getUsername());
         }
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            existing.setPassword(user.getPassword());
+        }
+        if (user.getPhone() != null && !user.getPhone().isEmpty()) {
+            existing.setPhone(user.getPhone());
+        }
+        if (user.getAvatar() != null) {
+            existing.setAvatar(user.getAvatar());
+        }
+        if (user.getDescription() != null) {
+            existing.setDescription(user.getDescription());
+        }
+        if (user.getLocation() != null) {
+            existing.setLocation(user.getLocation());
+        }
+        if (user.getGender() != null) {
+            existing.setGender(user.getGender());
+        }
+
+        return userMapper.updateById(existing) > 0;
     }
 
     /**
