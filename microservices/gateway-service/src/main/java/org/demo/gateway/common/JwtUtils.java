@@ -1,137 +1,106 @@
 /**
  * JWT工具类
- * 用于生成和解析JWT令牌
+ * 提供JWT token的创建、解析和验证功能，支持多角色身份认证
  * 
- * @author System
+ * @author Baoleme Team
  * @version 1.0
- * @since 2024-01-01
+ * @since 2025-01-25
  */
 package org.demo.gateway.common;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 
-import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * JWT工具类
- * 提供JWT令牌的生成、解析和验证功能
+ * 通用 JWT 工具类，支持多角色身份认证
  */
 public class JwtUtils {
 
     /**
-     * JWT密钥
+     * JWT签名密钥
      */
-    private static final String SECRET = "baoleme_gateway_service_jwt_secret_key_2024";
+    private static final String SECRET = "baoleme_secret_key_1234567890123456"; // 至少 32 字符
+    
+    /**
+     * Token过期时间（24小时）
+     */
+    private static final long EXPIRE_TIME = 1000 * 60 * 60 * 24;
 
     /**
-     * JWT过期时间（24小时）
+     * 签名密钥对象
      */
-    private static final long EXPIRATION = 24 * 60 * 60 * 1000;
+    private static final Key KEY = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
 
     /**
-     * 获取签名密钥
-     * 
-     * @return SecretKey 签名密钥
-     */
-    private static SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET.getBytes());
-    }
-
-    /**
-     * 生成JWT令牌
+     * 创建JWT token
      * 
      * @param userId 用户ID
      * @param role 用户角色
-     * @param storeId 店铺ID（可选）
-     * @return String JWT令牌
+     * @param username 用户名
+     * @return JWT token字符串
      */
-    public static String createToken(Long userId, String role, Long storeId) {
+    public static String createToken(Long userId, String role, String username) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
+        claims.put("user_id", userId);
         claims.put("role", role);
-        if (storeId != null) {
-            claims.put("storeId", storeId);
-        }
+        claims.put("username", username);
+
+        long now = System.currentTimeMillis();
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(userId.toString())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .setIssuedAt(new Date(now))
+                .setExpiration(new Date(now + EXPIRE_TIME))
+                .signWith(KEY, SignatureAlgorithm.HS256)
                 .compact();
     }
 
     /**
-     * 解析JWT令牌
+     * 解析JWT token载荷
      * 
-     * @param token JWT令牌
-     * @return Claims 令牌声明
-     * @throws Exception 解析失败时抛出异常
+     * @param token JWT token字符串
+     * @return 载荷信息Map，解析失败返回null
      */
-    public static Claims parseToken(String token) throws Exception {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-    }
-
-    /**
-     * 验证JWT令牌是否有效
-     * 
-     * @param token JWT令牌
-     * @return boolean 是否有效
-     */
-    public static boolean validateToken(String token) {
+    public static Map<String, Object> parsePayload(String token) {
         try {
-            Claims claims = parseToken(token);
-            return !claims.getExpiration().before(new Date());
-        } catch (Exception e) {
-            return false;
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(KEY)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("user_id", claims.get("user_id", Number.class));
+            payload.put("role", claims.get("role", String.class));
+            payload.put("username", claims.get("username", String.class));
+            return payload;
+        } catch (JwtException e) {
+            return null;
         }
     }
 
     /**
-     * 从JWT令牌中获取用户ID
+     * 检查JWT token是否过期
      * 
-     * @param token JWT令牌
-     * @return Long 用户ID
-     * @throws Exception 解析失败时抛出异常
+     * @param token JWT token字符串
+     * @return true表示已过期，false表示未过期
      */
-    public static Long getUserId(String token) throws Exception {
-        Claims claims = parseToken(token);
-        return Long.valueOf(claims.get("userId").toString());
-    }
-
-    /**
-     * 从JWT令牌中获取用户角色
-     * 
-     * @param token JWT令牌
-     * @return String 用户角色
-     * @throws Exception 解析失败时抛出异常
-     */
-    public static String getRole(String token) throws Exception {
-        Claims claims = parseToken(token);
-        return claims.get("role").toString();
-    }
-
-    /**
-     * 从JWT令牌中获取店铺ID
-     * 
-     * @param token JWT令牌
-     * @return Long 店铺ID
-     * @throws Exception 解析失败时抛出异常
-     */
-    public static Long getStoreId(String token) throws Exception {
-        Claims claims = parseToken(token);
-        Object storeId = claims.get("storeId");
-        return storeId != null ? Long.valueOf(storeId.toString()) : null;
+    public static boolean isExpired(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(KEY)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            return claims.getExpiration().before(new Date());
+        } catch (Exception e) {
+            return true;
+        }
     }
 }
