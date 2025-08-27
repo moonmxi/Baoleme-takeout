@@ -228,6 +228,9 @@ public class UserController {
     public CommonResponse favoriteStore(@Valid @RequestBody UserFavoriteRequest request) {
         Long userId = UserHolder.getId();
         boolean success = userService.favoriteStore(userId, request.getStoreId());
+        System.out.println(
+                userId+"商店id是"+request.getStoreId()
+        );
         return success ? ResponseBuilder.ok() : ResponseBuilder.fail("收藏失败");
     }
 
