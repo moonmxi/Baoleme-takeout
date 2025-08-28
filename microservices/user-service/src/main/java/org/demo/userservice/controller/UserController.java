@@ -13,7 +13,7 @@ import org.demo.userservice.common.CommonResponse;
 import org.demo.userservice.common.ResponseBuilder;
 import org.demo.userservice.common.JwtUtils;
 import org.demo.userservice.common.UserHolder;
-import org.demo.userservice.dto.request.coupon.AvailableCouponRequest;
+
 import org.demo.userservice.dto.request.user.*;
 import org.demo.userservice.dto.response.user.*;
 import org.demo.userservice.pojo.User;
@@ -265,48 +265,13 @@ public class UserController {
     public CommonResponse deleteFavorite(@Valid @RequestBody UserDeleteFavoriteRequest request) {
         Long userId = UserHolder.getId();
         boolean success = userService.deleteFavorite(userId, request.getStoreId());
+        System.out.println(
+                userId+"商店id是"+request.getStoreId()
+        );
         return success ? ResponseBuilder.ok() : ResponseBuilder.fail("删除失败");
     }
 
-    /**
-     * 获取用户优惠券接口
-     * 
-     * @param request 查看优惠券请求对象
-     * @return 优惠券列表响应
-     */
-    @PostMapping("/coupon")
-    public CommonResponse getUserCoupons(@Valid @RequestBody UserViewCouponRequest request) {
-        Long userId = UserHolder.getId();
-        Long storeId = request.getStoreId();
-        List<UserCouponResponse> coupons = userService.getUserCoupons(userId,storeId);
-        return ResponseBuilder.ok(coupons);
-    }
 
-    /**
-     * 查看可用优惠券接口
-     * 
-     * @param request 可用优惠券请求对象
-     * @return 可用优惠券列表响应
-     */
-    @PostMapping("/coupon/view")
-    public CommonResponse availableCoupons(@Valid @RequestBody AvailableCouponRequest request){
-        Long storeId = request.getStoreId();
-        List<UserCouponResponse> coupons = userService.getUserCoupons(0L,storeId);
-        return ResponseBuilder.ok(coupons);
-    }
-
-    /**
-     * 领取优惠券接口
-     * 
-     * @param request 领取优惠券请求对象
-     * @return 领取结果响应
-     */
-    @PostMapping("/coupon/claim")
-    public CommonResponse claimCoupon(@Valid @RequestBody UserClaimCouponRequest request) {
-        Long userId = UserHolder.getId();
-        boolean success = userService.claimCoupon(userId, request.getId());
-        return success ? ResponseBuilder.ok() : ResponseBuilder.fail("领取失败");
-    }
 
     /**
      * 搜索店铺和商品接口
@@ -326,6 +291,10 @@ public class UserController {
         BigDecimal endRating = request.getEndRating();
         Integer page = request.getPage();
         Integer pageSize = request.getPageSize();
+
+        System.out.println(
+                "关键词是"+keyword+"距离是"+distance+"价格是"+wishPrice+"开始是"+startRating+"结束是"+endRating+"页数是"+page+"页大小是"+pageSize
+        );
 
         List<UserSearchResponse> stores = userService.searchStores(keyword.trim(),distance,wishPrice,startRating,endRating,page,pageSize);
         return ResponseBuilder.ok(Map.of("results", stores));

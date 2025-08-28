@@ -114,23 +114,7 @@ public interface UserService {
      */
     boolean deleteFavorite(Long userId, Long storeId);
 
-    /**
-     * 获取用户优惠券
-     * 
-     * @param userId 用户ID
-     * @param storeId 店铺ID
-     * @return 优惠券列表
-     */
-    List<UserCouponResponse> getUserCoupons(Long userId, Long storeId);
 
-    /**
-     * 领取优惠券
-     * 
-     * @param userId 用户ID
-     * @param couponId 优惠券ID
-     * @return 是否领取成功
-     */
-    boolean claimCoupon(Long userId, Long couponId);
 
     /**
      * 全局搜索店铺

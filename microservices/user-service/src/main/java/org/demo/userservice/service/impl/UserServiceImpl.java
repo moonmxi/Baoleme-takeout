@@ -220,29 +220,7 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    /**
-     * 获取用户优惠券
-     */
-    @Override
-    public List<UserCouponResponse> getUserCoupons(Long userId, Long storeId) {
-        try {
-            return userMapper.getUserCoupons(userId, storeId);
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
-    }
 
-    /**
-     * 领取优惠券
-     */
-    @Override
-    public boolean claimCoupon(Long userId, Long couponId) {
-        try {
-            return userMapper.claimCoupon(userId, couponId) > 0;
-        } catch (Exception e) {
-            return false;
-        }
-    }
 
     /**
      * 全局搜索店铺
