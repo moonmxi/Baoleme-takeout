@@ -8,6 +8,17 @@ spring:
   application:
     name: gateway-service
   
+  # Jackson配置 - 支持下划线到驼峰自动转换
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    deserialization:
+      accept-single-value-as-array: true
+      fail-on-unknown-properties: false
+    serialization:
+      write-dates-as-timestamps: false
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  
   # 数据库配置 - 网关服务数据库
   datasource:
     url: jdbc:mysql://localhost:3306/baoleme_gateway?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai

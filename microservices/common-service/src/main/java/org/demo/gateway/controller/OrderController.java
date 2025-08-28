@@ -15,6 +15,7 @@ import org.demo.gateway.common.UserHolder;
 import org.demo.gateway.dto.request.OrderCreateRequest;
 import org.demo.gateway.dto.request.OrderGrabRequest;
 import org.demo.gateway.dto.request.OrderStatusUpdateRequest;
+import org.demo.gateway.dto.request.RiderOrderHistoryQueryRequest;
 import org.demo.gateway.dto.response.OrderResponse;
 import org.demo.gateway.pojo.Order;
 import org.demo.gateway.pojo.OrderItem;
@@ -159,7 +160,7 @@ public class OrderController {
     }
 
     /**
-     * 查询骑手订单记录
+     * 查询骑手订单记录（GET方式）
      * 
      * @param status 订单状态（可选）
      * @param page 页码
@@ -177,6 +178,31 @@ public class OrderController {
 
         Long riderId = UserHolder.getId();
         List<Order> orders = orderService.getRiderOrders(riderId, status, page, pageSize);
+        return ResponseBuilder.ok(Map.of("orders", orders));
+    }
+
+    /**
+     * 查询骑手订单记录（POST方式，支持复杂查询条件）
+     * 
+     * @param request 查询请求参数
+     * @return CommonResponse<List<Order>> 骑手订单列表
+     */
+    @PostMapping("/rider-history-query")
+    public CommonResponse getRiderOrdersWithQuery(@Valid @RequestBody RiderOrderHistoryQueryRequest request) {
+        String role = UserHolder.getRole();
+        if (!"rider".equals(role)) {
+            return ResponseBuilder.fail("无权限访问，仅骑手可操作");
+        }
+
+        Long riderId = UserHolder.getId();
+        List<Order> orders = orderService.getRiderOrdersWithFilter(
+                riderId, 
+                request.getStatus(), 
+                request.getStartTime(), 
+                request.getEndTime(), 
+                request.getPage(), 
+                request.getPageSize()
+        );
         return ResponseBuilder.ok(Map.of("orders", orders));
     }
 

@@ -16,7 +16,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * 提供API路由、负载均衡、跨服务协调等功能
  */
 @SpringBootApplication
-public class GatewayServiceApplication {
+public class CommonServiceApplication {
 
     /**
      * 应用程序主入口方法
@@ -24,7 +24,7 @@ public class GatewayServiceApplication {
      * @param args 命令行参数
      */
     public static void main(String[] args) {
-        SpringApplication.run(GatewayServiceApplication.class, args);
+        SpringApplication.run(CommonServiceApplication.class, args);
     }
 
 }

@@ -12,10 +12,10 @@
     </parent>
 
     <groupId>org.demo</groupId>
-    <artifactId>gateway-service</artifactId>
+    <artifactId>common-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>gateway-service</name>
-    <description>Gateway Service for Baoleme Microservices</description>
+    <name>common-service</name>
+    <description>Common Service for Baoleme Microservices</description>
 
     <properties>
         <java.version>17</java.version>
