@@ -122,7 +122,7 @@ public interface UserMapper extends BaseMapper<User> {
         s.created_at AS createdAt,
         s.image
     FROM store s
-    WHERE s.status = 'ACTIVE'
+    WHERE s.status = 1
         AND (#{type} IS NULL OR s.type = #{type})
         AND (#{distance} IS NULL OR s.distance <= #{distance})
         AND (#{avgPrice} IS NULL OR s.avg_price <= #{avgPrice})
@@ -184,6 +184,7 @@ public interface UserMapper extends BaseMapper<User> {
     FROM browse_history bh
     INNER JOIN store s ON bh.store_id = s.id
     WHERE bh.user_id = #{userId}
+        AND s.status = 1
     ORDER BY bh.created_at DESC
     LIMIT #{offset}, #{pageSize}
 """)
@@ -251,6 +252,7 @@ public interface UserMapper extends BaseMapper<User> {
     FROM favorite f 
     INNER JOIN store s ON f.store_id = s.id
     WHERE f.user_id = #{userId}
+        AND s.status = 1
         AND (#{type} IS NULL OR s.type = #{type})
         AND (#{distance} IS NULL OR s.distance <= #{distance})
         AND (#{startRating} IS NULL OR s.rating >= #{startRating})
@@ -298,6 +300,7 @@ public interface UserMapper extends BaseMapper<User> {
     FROM favorite f 
     INNER JOIN store s ON f.store_id = s.id
     WHERE f.user_id = #{userId}
+        AND s.status = 1
         AND (#{type} IS NULL OR s.type = #{type})
         AND (#{distance} IS NULL OR s.distance <= #{distance})
         AND (#{startRating} IS NULL OR s.rating >= #{startRating})
@@ -317,42 +320,7 @@ public interface UserMapper extends BaseMapper<User> {
             @Param("pageSize") int pageSize,
             @Param("offset") int offset);
 
-    /**
-     * 获取用户优惠券列表
-     * 
-     * @param userId 用户ID
-     * @param storeId 店铺ID
-     * @return 优惠券列表
-     */
-    @Select("""
-    SELECT 
-        c.id,
-        c.name,
-        c.description,
-        c.discount_amount,
-        c.min_order_amount,
-        c.start_date,
-        c.end_date,
-        c.store_id,
-        uc.is_used,
-        uc.used_at
-    FROM user_coupon uc
-    INNER JOIN coupon c ON uc.coupon_id = c.id
-    WHERE uc.user_id = #{userId}
-        AND (#{storeId} IS NULL OR c.store_id = #{storeId})
-    ORDER BY uc.created_at DESC
-""")
-    List<UserCouponResponse> getUserCoupons(@Param("userId") Long userId, @Param("storeId") Long storeId);
 
-    /**
-     * 领取优惠券
-     * 
-     * @param userId 用户ID
-     * @param couponId 优惠券ID
-     * @return 影响行数
-     */
-    @Insert("INSERT INTO user_coupon(user_id, coupon_id, created_at, is_used) VALUES(#{userId}, #{couponId}, NOW(), false)")
-    int claimCoupon(@Param("userId") Long userId, @Param("couponId") Long couponId);
 
     /**
      * 搜索店铺
@@ -379,7 +347,7 @@ public interface UserMapper extends BaseMapper<User> {
         s.created_at AS createdAt,
         s.image
     FROM store s
-    WHERE s.status = 'ACTIVE'
+    WHERE s.status = 1
         AND (#{keyword} IS NULL OR s.name LIKE CONCAT('%', #{keyword}, '%') OR s.description LIKE CONCAT('%', #{keyword}, '%'))
         AND (#{distance} IS NULL OR s.distance <= #{distance})
         AND (#{avgPrice} IS NULL OR s.avg_price <= #{avgPrice})
