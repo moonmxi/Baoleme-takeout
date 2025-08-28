@@ -1,5 +1,5 @@
 # 网关服务配置文件
-# 统一网关服务，提供路由转发、消息传递、数据同步等功能
+# 统一数据库操作网关服务，提供跨数据库的CRUD操作和数据同步功能
 
 server:
   port: 8080
@@ -8,36 +8,49 @@ spring:
   application:
     name: gateway-service
   
-  # 数据库配置 - 网关服务数据库
-  datasource:
-    url: jdbc:mysql://localhost:3306/baoleme_gateway?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: root
-    password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    
   # 多数据源配置
   datasource:
+    # 网关数据库（主数据源）
+    primary:
+      jdbc-url: jdbc:mysql://localhost:3306/baoleme_gateway?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      username: root
+      password: 88159918
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: GatewayHikariPool
+        maximum-pool-size: 15
+        minimum-idle: 5
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+    
     # 用户数据库
     user:
       jdbc-url: jdbc:mysql://localhost:3306/baoleme_user?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
       username: root
-      password: root
+      password: 88159918
       driver-class-name: com.mysql.cj.jdbc.Driver
       hikari:
         pool-name: UserHikariPool
         maximum-pool-size: 10
-        minimum-idle: 5
+        minimum-idle: 3
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
     
     # 商家数据库
     merchant:
       jdbc-url: jdbc:mysql://localhost:3306/baoleme_merchant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
       username: root
-      password: root
+      password: 88159918
       driver-class-name: com.mysql.cj.jdbc.Driver
       hikari:
         pool-name: MerchantHikariPool
         maximum-pool-size: 10
-        minimum-idle: 5
+        minimum-idle: 3
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
     
     # 骑手数据库
     rider:
@@ -48,18 +61,24 @@ spring:
       hikari:
         pool-name: RiderHikariPool
         maximum-pool-size: 10
-        minimum-idle: 5
+        minimum-idle: 3
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
     
     # 管理员数据库
     admin:
       jdbc-url: jdbc:mysql://localhost:3306/baoleme_admin?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
       username: root
-      password: root
+      password: 88159918
       driver-class-name: com.mysql.cj.jdbc.Driver
       hikari:
         pool-name: AdminHikariPool
         maximum-pool-size: 10
-        minimum-idle: 5
+        minimum-idle: 3
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
 
 # MyBatis-Plus配置
 mybatis-plus:
@@ -78,7 +97,7 @@ logging:
   level:
     org.demo.gateway: debug
     org.springframework.jdbc: debug
-    com.zaxxer.hikari: debug
+    com.zaxxer.hikari: info
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
@@ -87,16 +106,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,gateway
+        include: health,info,metrics
   endpoint:
     health:
       show-details: always
-    gateway:
-      enabled: true
 
-# 自定义配置
+# 网关数据库操作配置
 gateway:
-  # 数据库操作配置
   database:
     # 操作超时时间（毫秒）
     timeout: 30000
@@ -107,38 +123,56 @@ gateway:
     # 连接池监控
     pool-monitoring: true
   
-  # 安全认证配置
-  security:
-    enabled: true
-    secret-key: "baoleme-gateway-secret-2025-${random.value}"
-    token-expiry: 300  # 令牌有效期（秒），默认5分钟
-  
-  # 表映射配置
+  # 表映射配置 - 定义每个数据表对应的数据库
   table-mapping:
-    # 用户相关表
+    # 用户服务相关表 -> baoleme_user 数据库
     user: user
-    user_favorite: user
-    user_coupon: user
-    user_view_history: user
+    user_coupon: gateway  # 用户优惠券表在网关数据库中
+    favorite: user
+    browse_history: user
     
-    # 商家相关表
+    # 商家服务相关表 -> baoleme_merchant 数据库
     merchant: merchant
     store: merchant
     product: merchant
     sales: merchant
     
-    # 骑手相关表
+    # 骑手服务相关表 -> baoleme_rider 数据库
     rider: rider
     
-    # 管理员相关表
+    # 管理员服务相关表 -> baoleme_admin 数据库
     admin: admin
     
-    # 订单相关表（网关数据库）
+    # 网关服务相关表 -> baoleme_gateway 数据库
+    # 订单相关
     order: gateway
     order_item: gateway
+    
+    # 评价相关
     review: gateway
+    
+    # 购物车相关
     cart: gateway
+    
+    # 优惠券相关
     coupon: gateway
+    
+    # 消息相关
     message: gateway
-    favorite: user
-    browse_history: user
+    
+    # 数据同步相关
+    sync_log: gateway
+    message_log: gateway
+    
+    # 默认数据库配置
+    default-datasource: gateway
+    
+    # 数据库别名映射
+    datasource-aliases:
+      user-db: user
+      merchant-db: merchant
+      rider-db: rider
+      admin-db: admin
+      gateway-db: gateway
+      order-db: gateway
+      message-db: gateway

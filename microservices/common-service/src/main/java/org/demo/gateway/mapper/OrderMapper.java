@@ -75,6 +75,29 @@ public interface OrderMapper extends BaseMapper<Order> {
                               @Param("limit") int limit);
 
     /**
+     * 根据骑手ID和复杂条件查询订单（支持时间范围筛选）
+     * 
+     * @param riderId 骑手ID
+     * @param status 订单状态（可选）
+     * @param startTime 开始时间（可选）
+     * @param endTime 结束时间（可选）
+     * @param offset 偏移量
+     * @param limit 限制数量
+     * @return List<Order> 订单列表
+     */
+    @Select("SELECT * FROM `order` WHERE rider_id = #{riderId} " +
+            "AND (#{status} IS NULL OR status = #{status}) " +
+            "AND (#{startTime} IS NULL OR #{startTime} = '' OR created_at >= #{startTime}) " +
+            "AND (#{endTime} IS NULL OR #{endTime} = '' OR created_at <= #{endTime}) " +
+            "ORDER BY created_at DESC LIMIT #{offset}, #{limit}")
+    List<Order> getRiderOrdersWithFilter(@Param("riderId") Long riderId,
+                                        @Param("status") Integer status,
+                                        @Param("startTime") String startTime,
+                                        @Param("endTime") String endTime,
+                                        @Param("offset") int offset,
+                                        @Param("limit") int limit);
+
+    /**
      * 根据店铺ID查询订单
      * 
      * @param storeId 店铺ID

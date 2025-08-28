@@ -167,6 +167,23 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
+     * 获取骑手订单列表（支持复杂条件筛选）
+     * 
+     * @param riderId 骑手ID
+     * @param status 订单状态（可选）
+     * @param startTime 开始时间（可选）
+     * @param endTime 结束时间（可选）
+     * @param page 页码
+     * @param pageSize 每页大小
+     * @return List<Order> 骑手订单列表
+     */
+    @Override
+    public List<Order> getRiderOrdersWithFilter(Long riderId, Integer status, String startTime, String endTime, int page, int pageSize) {
+        int offset = (page - 1) * pageSize;
+        return orderMapper.getRiderOrdersWithFilter(riderId, status, startTime, endTime, offset, pageSize);
+    }
+
+    /**
      * 获取骑手收入统计
      * 
      * @param riderId 骑手ID

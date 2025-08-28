@@ -1,77 +1,73 @@
 /**
  * 网关服务启动类
- * 专注于跨数据库操作的微服务网关
+ * 统一数据库操作网关服务，提供跨数据库的CRUD操作和数据同步功能
+ * 
+ * 主要功能：
+ * 1. 多数据源动态路由
+ * 2. 统一数据库操作API
+ * 3. 跨数据库事务支持
+ * 4. 数据同步和一致性保证
  * 
  * @author Baoleme Team
- * @version 2.0
+ * @version 1.0
  * @since 2025-01-25
  */
 package org.demo.gateway;
 
 import lombok.extern.slf4j.Slf4j;
-import org.demo.gateway.interceptor.SecurityInterceptor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Arrays;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 网关服务启动类
- * 提供跨数据库操作功能的统一网关服务
+ * 提供统一的数据库操作网关服务
  */
 @Slf4j
 @SpringBootApplication
-public class GatewayServiceApplication implements WebMvcConfigurer {
+@RestController
+public class GatewayServiceApplication {
 
     /**
-     * 安全拦截器
+     * 应用启动入口
+     * 
+     * @param args 启动参数
      */
-    @Autowired
-    private SecurityInterceptor securityInterceptor;
-
     public static void main(String[] args) {
+        log.info("启动网关数据库操作服务...");
         SpringApplication.run(GatewayServiceApplication.class, args);
-        log.info("=== 网关服务启动成功 ===");
-        log.info("专注于跨数据库操作的微服务网关已就绪");
+        log.info("网关数据库操作服务启动完成");
+        log.info("=== 网关服务功能 ===");
+        log.info("1. 多数据源动态路由");
+        log.info("2. 统一数据库操作API");
+        log.info("3. 跨数据库CRUD操作");
+        log.info("4. 数据同步和一致性保证");
         log.info("访问地址: http://localhost:8080");
-        log.info("安全认证: 已启用");
     }
 
     /**
-     * 注册拦截器
+     * 根路径健康检查
      * 
-     * @param registry 拦截器注册表
+     * @return 服务状态
      */
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(securityInterceptor)
-                .addPathPatterns("/api/database/**")
-                .excludePathPatterns("/api/database/health", "/actuator/**");
-        log.info("安全拦截器已注册");
-    }
-
-    /**
-     * 跨域配置
-     * 
-     * @return CorsConfigurationSource 跨域配置源
-     */
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
-        
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
+    @GetMapping("/")
+    public Map<String, Object> home() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("service", "gateway-database-service");
+        response.put("status", "UP");
+        response.put("timestamp", LocalDateTime.now().toString());
+        response.put("message", "Gateway Database Service is running");
+        response.put("features", new String[]{
+            "Multi-DataSource Dynamic Routing",
+            "Unified Database Operations API",
+            "Cross-Database CRUD Operations",
+            "Data Synchronization Support"
+        });
+        return response;
     }
 }

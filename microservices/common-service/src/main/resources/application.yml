@@ -28,6 +28,17 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
+  
+  # Jackson配置 - 支持下划线到驼峰自动转换
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    deserialization:
+      accept-single-value-as-array: true
+      fail-on-unknown-properties: false
+    serialization:
+      write-dates-as-timestamps: false
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
 
 # MyBatis-Plus配置
 mybatis-plus:

@@ -2,8 +2,8 @@
 -- 创建网关服务数据库，主要处理订单相关的跨服务协调
 
 -- 创建数据库
-CREATE DATABASE IF NOT EXISTS baoleme_gateway DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE baoleme_gateway;
+CREATE DATABASE IF NOT EXISTS baoleme_common DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE baoleme_common;
 
 -- 八、订单表 order
 CREATE TABLE IF NOT EXISTS `order` (

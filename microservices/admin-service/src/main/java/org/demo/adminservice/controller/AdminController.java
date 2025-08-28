@@ -1,49 +1,76 @@
 /**
  * 管理员控制器
  * 提供管理员相关的REST API接口，包括登录、登出、用户管理、商家管理、骑手管理等功能
+ * 重构后通过网关API调用其他微服务数据，仅保留管理员认证功能的直接数据库访问
  * 
- * @author System
- * @version 1.0
- * @since 2024-01-01
+ * @author Baoleme Team
+ * @version 2.0
+ * @since 2025-01-25
  */
 package org.demo.adminservice.controller;
 
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
+import org.demo.adminservice.client.GatewayApiClient;
 import org.demo.adminservice.common.CommonResponse;
 import org.demo.adminservice.common.JwtUtils;
 import org.demo.adminservice.common.ResponseBuilder;
 import org.demo.adminservice.common.UserHolder;
 import org.demo.adminservice.dto.request.admin.*;
 import org.demo.adminservice.dto.response.admin.*;
-import org.demo.adminservice.pojo.*;
+import org.demo.adminservice.pojo.Admin;
 import org.demo.adminservice.service.AdminService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * 管理员控制器类
  * 处理管理员相关的HTTP请求，包括登录认证、用户管理、商家管理、骑手管理等功能
+ * 重构后通过网关API客户端调用其他微服务数据
  */
+@Slf4j
 @RestController
 @RequestMapping("/admin")
 public class AdminController {
 
+    /**
+     * Redis模板，用于管理登录状态
+     */
     private final RedisTemplate<String, Object> redisTemplate;
 
+    /**
+     * 管理员服务，处理管理员认证逻辑
+     */
     @Autowired
     private AdminService adminService;
 
+    /**
+     * 网关API客户端，用于调用其他微服务
+     */
     @Autowired
-    public AdminController(AdminService adminService, RedisTemplate<String, Object> redisTemplate) {
+    private GatewayApiClient gatewayApiClient;
+
+    /**
+     * 构造函数
+     * 
+     * @param adminService 管理员服务
+     * @param redisTemplate Redis模板
+     * @param gatewayApiClient 网关API客户端
+     */
+    @Autowired
+    public AdminController(AdminService adminService, RedisTemplate<String, Object> redisTemplate, GatewayApiClient gatewayApiClient) {
         this.adminService = adminService;
         this.redisTemplate = redisTemplate;
+        this.gatewayApiClient = gatewayApiClient;
     }
 
     /**
@@ -54,35 +81,46 @@ public class AdminController {
      */
     @PostMapping("/login")
     public CommonResponse login(@Valid @RequestBody AdminLoginRequest request) {
-        Admin admin = adminService.login(request.getAdminId(), request.getPassword());
-        if (admin == null) {
-            return ResponseBuilder.fail("账号或密码错误");
+        try {
+            log.info("管理员登录请求: adminId={}", request.getAdminId());
+            
+            Admin admin = adminService.login(request.getAdminId(), request.getPassword());
+            if (admin == null) {
+                log.warn("管理员登录失败: adminId={}", request.getAdminId());
+                return ResponseBuilder.fail("账号或密码错误");
+            }
+
+            // 构建 Redis 中用于标识登录状态的 key
+            String redisLoginKey = "admin:login:" + admin.getId();
+
+            // 如果已经存在登录状态，则拒绝登录
+            if (Boolean.TRUE.equals(redisTemplate.hasKey(redisLoginKey))) {
+                log.warn("管理员重复登录: adminId={}", admin.getId());
+                return ResponseBuilder.fail("该账户已登录，请先登出后再登录");
+            }
+
+            // 生成 token
+            String token = JwtUtils.createToken(admin.getId(), "admin", null);
+
+            // 将 token 存入 Redis（用于拦截器校验）
+            String redisTokenKey = "admin:token:" + token;
+            redisTemplate.opsForValue().set(redisTokenKey, admin.getId(), 1, TimeUnit.DAYS);
+
+            // 记录登录状态（防止重复登录）
+            redisTemplate.opsForValue().set(redisLoginKey, token, 1, TimeUnit.DAYS);
+
+            // 返回响应
+            AdminLoginResponse response = new AdminLoginResponse();
+            response.setId(admin.getId());
+            response.setToken(token);
+
+            log.info("管理员登录成功: adminId={}", admin.getId());
+            return ResponseBuilder.ok(response);
+            
+        } catch (Exception e) {
+            log.error("管理员登录异常", e);
+            return ResponseBuilder.fail("登录失败: " + e.getMessage());
         }
-
-        // 构建 Redis 中用于标识登录状态的 key
-        String redisLoginKey = "admin:login:" + admin.getId();
-
-        // 如果已经存在登录状态，则拒绝登录
-        if (Boolean.TRUE.equals(redisTemplate.hasKey(redisLoginKey))) {
-            return ResponseBuilder.fail("该账户已登录，请先登出后再登录");
-        }
-
-        // 生成 token
-        String token = JwtUtils.createToken(admin.getId(), "admin", null);
-
-        // 将 token 存入 Redis（用于拦截器校验）
-        String redisTokenKey = "admin:token:" + token;
-        redisTemplate.opsForValue().set(redisTokenKey, admin.getId(), 1, TimeUnit.DAYS);
-
-        // 记录登录状态（防止重复登录）
-        redisTemplate.opsForValue().set(redisLoginKey, token, 1, TimeUnit.DAYS);
-
-        // 返回响应
-        AdminLoginResponse response = new AdminLoginResponse();
-        response.setId(admin.getId());
-        response.setToken(token);
-
-        return ResponseBuilder.ok(response);
     }
 
     /**
@@ -93,191 +131,267 @@ public class AdminController {
      */
     @PostMapping("/logout")
     public CommonResponse logout(@RequestHeader("Authorization") String tokenHeader) {
-        String token = tokenHeader.replace("Bearer ", "");
-        String redisTokenKey = "admin:token:" + token;
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            String redisTokenKey = "admin:token:" + token;
 
-        // 删除 token -> id 映射
-        Object userId = redisTemplate.opsForValue().get(redisTokenKey);
-        if (userId != null) {
-            String redisLoginKey = "admin:login:" + userId;
-            redisTemplate.delete(redisLoginKey);
+            // 删除 token -> id 映射
+            Object userId = redisTemplate.opsForValue().get(redisTokenKey);
+            if (userId != null) {
+                String redisLoginKey = "admin:login:" + userId;
+                redisTemplate.delete(redisLoginKey);
+                log.info("管理员登出成功: adminId={}", userId);
+            }
+
+            redisTemplate.delete(redisTokenKey);
+            return ResponseBuilder.ok("登出成功");
+            
+        } catch (Exception e) {
+            log.error("管理员登出异常", e);
+            return ResponseBuilder.fail("登出失败: " + e.getMessage());
         }
-
-        redisTemplate.delete(redisTokenKey);
-        return ResponseBuilder.ok("登出成功");
     }
 
     /**
      * 管理员分页查看用户列表
+     * 通过网关API调用用户微服务获取数据
      * 
      * @param request 用户查询请求对象
      * @return CommonResponse 用户列表响应
      */
     @PostMapping("/userlist")
-    public CommonResponse getUserList(@Valid @RequestBody AdminUserQueryRequest request) {
+    public CommonResponse getUserList(@Valid @RequestBody AdminUserQueryRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String role = UserHolder.getRole();
         if (!"admin".equals(role)) {
             return ResponseBuilder.fail("无权限访问，仅管理员可操作");
         }
 
-        int page = request.getPage();
-        int pageSize = request.getPageSize();
-        String keyword = request.getKeyword();
-        String gender = request.getGender();
-        Long startId = request.getStartId();
-        Long endId = request.getEndId();
-        List<User> userList = adminService.getAllUsersPaged(page, pageSize, keyword, gender, startId, endId);
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            List<Map<String, Object>> userList = gatewayApiClient.getUserList(
+                request.getPage(), request.getPageSize(), request.getKeyword(), 
+                request.getGender(), request.getStartId(), request.getEndId(), token);
 
-        List<AdminUserQueryResponse> responses = userList.stream().map(user -> {
-            AdminUserQueryResponse resp = new AdminUserQueryResponse();
-            resp.setId(user.getId());
-            resp.setUsername(user.getUsername());
-            resp.setDescription(user.getDescription());
-            resp.setPhone(user.getPhone());
-            resp.setAvatar(user.getAvatar());
-            resp.setCreatedAt(user.getCreatedAt());
-            return resp;
-        }).toList();
+            List<AdminUserQueryResponse> responses = userList.stream().map(user -> {
+                AdminUserQueryResponse resp = new AdminUserQueryResponse();
+                resp.setId(((Number) user.get("id")).longValue());
+                resp.setUsername((String) user.get("username"));
+                resp.setDescription((String) user.get("description"));
+                resp.setPhone((String) user.get("phone"));
+                resp.setAvatar((String) user.get("avatar"));
+                Object createdAt = user.get("createdAt");
+                if (createdAt != null) {
+                    resp.setCreatedAt(LocalDateTime.parse(createdAt.toString()));
+                }
+                return resp;
+            }).collect(Collectors.toList());
 
-        return ResponseBuilder.ok(Map.of("users", responses));
+            return ResponseBuilder.ok(Map.of("users", responses));
+        } catch (Exception e) {
+            log.error("获取用户列表失败", e);
+            return ResponseBuilder.fail("获取用户列表失败");
+        }
     }
-
-
 
     /**
      * 管理员分页查看骑手列表
+     * 通过网关API调用骑手微服务获取数据
      * 
      * @param request 骑手查询请求对象
      * @return CommonResponse 骑手列表响应
      */
     @PostMapping("/riderlist")
-    public CommonResponse getRiderList(@Valid @RequestBody AdminRiderQueryRequest request) {
+    public CommonResponse getRiderList(@Valid @RequestBody AdminRiderQueryRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String role = UserHolder.getRole();
         if (!"admin".equals(role)) {
             return ResponseBuilder.fail("无权限访问，仅管理员可操作");
         }
 
-        int page = request.getPage();
-        int pageSize = request.getPageSize();
-        String keyword = request.getKeyword();
-        Long startId = request.getStartId();
-        Long endId = request.getEndId();
-        Integer status = request.getStatus();
-        Integer dispatchMode = request.getDispatchMode();
-        Long startBalance = request.getStartBalance();
-        Long endBalance = request.getEndBalance();
-        List<Rider> riderList = adminService.getAllRidersPaged(page, pageSize, keyword, startId, endId, status, dispatchMode, startBalance, endBalance);
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            int page = request.getPage();
+            int pageSize = request.getPageSize();
+            String keyword = request.getKeyword();
+            Long startId = request.getStartId();
+            Long endId = request.getEndId();
+            Integer status = request.getStatus();
+            Integer dispatchMode = request.getDispatchMode();
+            Long startBalance = request.getStartBalance();
+            Long endBalance = request.getEndBalance();
+            
+            log.info("管理员查询骑手列表: page={}, pageSize={}, keyword={}", page, pageSize, keyword);
+            
+            List<Map<String, Object>> riderList = gatewayApiClient.getRiderList(page, pageSize, keyword, startId, endId, status, dispatchMode, startBalance, endBalance, token);
 
-        List<AdminRiderQueryResponse> responses = riderList.stream().map(rider -> {
-            AdminRiderQueryResponse resp = new AdminRiderQueryResponse();
-            resp.setId(rider.getId());
-            resp.setUsername(rider.getUsername());
-            resp.setPhone(rider.getPhone());
-            resp.setStatus(rider.getStatus());
-            resp.setDispatchMode(rider.getDispatchMode());
-            resp.setBalance(rider.getBalance());
-            resp.setAvatar(rider.getAvatar());
-            resp.setCreatedAt(rider.getCreatedAt());
-            return resp;
-        }).toList();
+            List<AdminRiderQueryResponse> responses = riderList.stream().map(rider -> {
+                AdminRiderQueryResponse resp = new AdminRiderQueryResponse();
+                resp.setId(((Number) rider.get("id")).longValue());
+                resp.setUsername((String) rider.get("username"));
+                resp.setPhone((String) rider.get("phone"));
+                Object statusObj = rider.get("status");
+                if (statusObj != null) resp.setStatus(((Number) statusObj).intValue());
+                Object dispatchModeObj = rider.get("dispatchMode");
+                if (dispatchModeObj != null) resp.setDispatchMode(((Number) dispatchModeObj).intValue());
+                Object balanceObj = rider.get("balance");
+                if (balanceObj != null) resp.setBalance(((Number) balanceObj).longValue());
+                resp.setAvatar((String) rider.get("avatar"));
+                Object createdAt = rider.get("createdAt");
+                if (createdAt != null) {
+                    resp.setCreatedAt(LocalDateTime.parse(createdAt.toString()));
+                }
+                return resp;
+            }).collect(Collectors.toList());
 
-        return ResponseBuilder.ok(Map.of("riders", responses));
+            log.info("成功获取骑手列表，共{}条记录", responses.size());
+            return ResponseBuilder.ok(Map.of("riders", responses));
+            
+        } catch (Exception e) {
+            log.error("获取骑手列表失败", e);
+            return ResponseBuilder.fail("获取骑手列表失败: " + e.getMessage());
+        }
     }
 
     /**
      * 管理员分页查看商家列表
+     * 通过网关API调用商家微服务获取数据
      * 
      * @param request 商家查询请求对象
      * @return CommonResponse 商家列表响应
      */
     @PostMapping("/merchantlist")
-    public CommonResponse getMerchantList(@Valid @RequestBody AdminMerchantQueryRequest request) {
+    public CommonResponse getMerchantList(@Valid @RequestBody AdminMerchantQueryRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String role = UserHolder.getRole();
         if (!"admin".equals(role)) {
             return ResponseBuilder.fail("无权限访问，仅管理员可操作");
         }
 
-        int page = request.getPage();
-        int pageSize = request.getPageSize();
-        String keyword = request.getKeyword();
-        Long startId = request.getStartId();
-        Long endId = request.getEndId();
-        List<Merchant> merchantList = adminService.getAllMerchantsPaged(page, pageSize, keyword, startId, endId);
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            int page = request.getPage();
+            int pageSize = request.getPageSize();
+            String keyword = request.getKeyword();
+            Long startId = request.getStartId();
+            Long endId = request.getEndId();
+            
+            log.info("管理员查询商家列表: page={}, pageSize={}, keyword={}", page, pageSize, keyword);
+            
+            List<Map<String, Object>> merchantList = gatewayApiClient.getMerchantList(page, pageSize, keyword, startId, endId, token);
 
-        List<AdminMerchantQueryResponse> responses = merchantList.stream().map(merchant -> {
-            AdminMerchantQueryResponse resp = new AdminMerchantQueryResponse();
-            resp.setId(merchant.getId());
-            resp.setUsername(merchant.getUsername());
-            resp.setPhone(merchant.getPhone());
-            resp.setCreatedAt(merchant.getCreatedAt());
-            return resp;
-        }).toList();
+            List<AdminMerchantQueryResponse> responses = merchantList.stream().map(merchant -> {
+                AdminMerchantQueryResponse resp = new AdminMerchantQueryResponse();
+                resp.setId(((Number) merchant.get("id")).longValue());
+                resp.setUsername((String) merchant.get("username"));
+                resp.setPhone((String) merchant.get("phone"));
+                Object createdAt = merchant.get("createdAt");
+                if (createdAt != null) {
+                    resp.setCreatedAt(LocalDateTime.parse(createdAt.toString()));
+                }
+                return resp;
+            }).collect(Collectors.toList());
 
-        return ResponseBuilder.ok(Map.of("merchants", responses));
+            log.info("成功获取商家列表，共{}条记录", responses.size());
+            return ResponseBuilder.ok(Map.of("merchants", responses));
+            
+        } catch (Exception e) {
+            log.error("获取商家列表失败", e);
+            return ResponseBuilder.fail("获取商家列表失败: " + e.getMessage());
+        }
     }
 
     /**
      * 管理员分页查看店铺列表
+     * 通过网关API调用商家微服务获取数据
      * 
      * @param request 店铺查询请求对象
      * @return CommonResponse 店铺列表响应
      */
     @PostMapping("/storelist")
-    public CommonResponse getStoreList(@Valid @RequestBody AdminStoreQueryRequest request) {
+    public CommonResponse getStoreList(@Valid @RequestBody AdminStoreQueryRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String role = UserHolder.getRole();
         if (!"admin".equals(role)) {
             return ResponseBuilder.fail("无权限访问，仅管理员可操作");
         }
 
-        int page = request.getPage();
-        int pageSize = request.getPageSize();
-        String keyword = request.getKeyword();
-        Long merchantId = request.getMerchantId();
-        Integer status = request.getStatus();
-        List<Store> storeList = adminService.getAllStoresPaged(page, pageSize, keyword, merchantId, status);
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            int page = request.getPage();
+            int pageSize = request.getPageSize();
+            String keyword = request.getKeyword();
+            Long merchantId = request.getMerchantId();
+            Integer status = request.getStatus();
+            
+            log.info("管理员查询店铺列表: page={}, pageSize={}, keyword={}", page, pageSize, keyword);
+            
+            List<Map<String, Object>> storeList = gatewayApiClient.getStoreList(page, pageSize, keyword, merchantId, status, token);
 
-        List<AdminStoreQueryResponse> responses = storeList.stream().map(store -> {
-            AdminStoreQueryResponse resp = new AdminStoreQueryResponse();
-            resp.setId(store.getId());
-            resp.setMerchantId(store.getMerchantId());
-            resp.setName(store.getName());
-            resp.setDescription(store.getDescription());
-            resp.setLocation(store.getLocation());
-            resp.setType(store.getType());
-            resp.setRating(store.getRating());
-            resp.setStatus(store.getStatus());
-            resp.setCreatedAt(store.getCreatedAt());
-            return resp;
-        }).toList();
+            List<AdminStoreQueryResponse> responses = storeList.stream().map(store -> {
+                AdminStoreQueryResponse resp = new AdminStoreQueryResponse();
+                resp.setId(((Number) store.get("id")).longValue());
+                Object merchantIdObj = store.get("merchantId");
+                if (merchantIdObj != null) resp.setMerchantId(((Number) merchantIdObj).longValue());
+                resp.setName((String) store.get("name"));
+                resp.setDescription((String) store.get("description"));
+                resp.setLocation((String) store.get("location"));
+                resp.setType((String) store.get("type"));
+                Object ratingObj = store.get("rating");
+                if (ratingObj != null) resp.setRating(BigDecimal.valueOf(((Number) ratingObj).doubleValue()));
+                Object statusObj = store.get("status");
+                if (statusObj != null) resp.setStatus(((Number) statusObj).intValue());
+                Object createdAt = store.get("createdAt");
+                if (createdAt != null) {
+                    resp.setCreatedAt(LocalDateTime.parse(createdAt.toString()));
+                }
+                return resp;
+            }).collect(Collectors.toList());
 
-        return ResponseBuilder.ok(Map.of("stores", responses));
+            log.info("成功获取店铺列表，共{}条记录", responses.size());
+            return ResponseBuilder.ok(Map.of("stores", responses));
+            
+        } catch (Exception e) {
+            log.error("获取店铺列表失败", e);
+            return ResponseBuilder.fail("获取店铺列表失败: " + e.getMessage());
+        }
     }
-
-
 
     /**
      * 管理员分页查看商品列表
+     * 通过网关API调用商家微服务获取数据
      * 
      * @param request 商品查询请求对象
      * @return CommonResponse 商品列表响应
      */
     @PostMapping("/productlist")
-    public CommonResponse getProductList(@RequestBody AdminProductQueryRequest request) {
+    public CommonResponse getProductList(@RequestBody AdminProductQueryRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String role = UserHolder.getRole();
         if (!"admin".equals(role)) {
             return ResponseBuilder.fail("无权限访问，仅管理员可操作");
         }
-        return ResponseBuilder.ok(Map.of("products", adminService.getProductsByStore(request.getStoreId(), request.getPage(), request.getPageSize())));
+        
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            
+            log.info("管理员查询商品列表: storeId={}, page={}, pageSize={}", request.getStoreId(), request.getPage(), request.getPageSize());
+            
+            List<Map<String, Object>> productList = gatewayApiClient.getProductList(request.getStoreId(), request.getPage(), request.getPageSize(), token);
+            
+            log.info("成功获取商品列表，共{}条记录", productList.size());
+            return ResponseBuilder.ok(Map.of("products", productList));
+            
+        } catch (Exception e) {
+            log.error("获取商品列表失败", e);
+            return ResponseBuilder.fail("获取商品列表失败: " + e.getMessage());
+        }
     }
 
     /**
      * 管理员删除操作
+     * 通过网关API调用相应微服务进行删除
      * 
      * @param request 删除请求对象
      * @return CommonResponse 删除结果
      */
     @DeleteMapping("/delete")
-    public CommonResponse delete(@RequestBody AdminDeleteRequest request) {
+    public CommonResponse delete(@RequestBody AdminDeleteRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String role = UserHolder.getRole();
         if (!"admin".equals(role)) {
             return ResponseBuilder.fail("无权限访问，仅管理员可操作");
@@ -293,140 +407,195 @@ public class AdminController {
             return ResponseBuilder.fail("至少提供一个删除目标");
         }
 
-        List<String> failed = new ArrayList<>();
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            List<String> failed = new ArrayList<>();
 
-        // 删除用户
-        if (request.getUserName() != null &&
-                !adminService.deleteUserByUsername(request.getUserName())) {
-            failed.add("用户删除失败");
-        }
-
-        // 删除骑手
-        if (request.getRiderName() != null &&
-                !adminService.deleteRiderByUsername(request.getRiderName())) {
-            failed.add("骑手删除失败");
-        }
-
-        // 删除商家
-        if (request.getMerchantName() != null &&
-                !adminService.deleteMerchantByUsername(request.getMerchantName())) {
-            failed.add("商家删除失败");
-        }
-
-        // 删除商品（需要店铺名）
-        if (request.getProductName() != null) {
-            if (request.getStoreName() == null) {
-                return ResponseBuilder.fail("删除商品必须同时提供所属店铺名");
+            // 删除用户
+            if (request.getUserName() != null) {
+                log.info("管理员删除用户: {}", request.getUserName());
+                if (!gatewayApiClient.deleteUser(request.getUserName(), token)) {
+                    failed.add("用户删除失败");
+                }
             }
-            if (!adminService.deleteProductByNameAndStore(request.getProductName(), request.getStoreName())) {
-                failed.add("商品删除失败");
-            }
-        } else if (request.getStoreName() != null) {
-            // 删除店铺（仅当未指定商品时才删除店铺）
-            if (!adminService.deleteStoreByName(request.getStoreName())) {
-                failed.add("店铺删除失败");
-            }
-        }
 
-        if (!failed.isEmpty()) {
-            return ResponseBuilder.fail("删除失败：" + String.join("；", failed));
-        }
+            // 删除骑手
+            if (request.getRiderName() != null) {
+                log.info("管理员删除骑手: {}", request.getRiderName());
+                if (!gatewayApiClient.deleteRider(request.getRiderName(), token)) {
+                    failed.add("骑手删除失败");
+                }
+            }
 
-        return ResponseBuilder.ok("删除成功");
+            // 删除商家
+            if (request.getMerchantName() != null) {
+                log.info("管理员删除商家: {}", request.getMerchantName());
+                if (!gatewayApiClient.deleteMerchant(request.getMerchantName(), token)) {
+                    failed.add("商家删除失败");
+                }
+            }
+
+            // 删除商品（需要店铺名）
+            if (request.getProductName() != null) {
+                if (request.getStoreName() == null) {
+                    return ResponseBuilder.fail("删除商品必须同时提供所属店铺名");
+                }
+                log.info("管理员删除商品: {} from {}", request.getProductName(), request.getStoreName());
+                if (!gatewayApiClient.deleteProduct(request.getProductName(), request.getStoreName(), token)) {
+                    failed.add("商品删除失败");
+                }
+            } else if (request.getStoreName() != null) {
+                // 删除店铺（仅当未指定商品时才删除店铺）
+                log.info("管理员删除店铺: {}", request.getStoreName());
+                if (!gatewayApiClient.deleteStore(request.getStoreName(), token)) {
+                    failed.add("店铺删除失败");
+                }
+            }
+
+            if (!failed.isEmpty()) {
+                return ResponseBuilder.fail("删除失败：" + String.join("；", failed));
+            }
+
+            log.info("管理员删除操作成功");
+            return ResponseBuilder.ok("删除成功");
+            
+        } catch (Exception e) {
+            log.error("删除操作失败", e);
+            return ResponseBuilder.fail("删除操作失败: " + e.getMessage());
+        }
     }
 
     /**
      * 管理员分页查看订单
+     * 通过网关API调用网关微服务获取数据
      * 
      * @param request 订单查询请求对象
      * @return CommonResponse 订单列表响应
      */
     @PostMapping("/orderlist")
-    public CommonResponse getOrderList(@Valid @RequestBody AdminOrderQueryRequest request) {
+    public CommonResponse getOrderList(@Valid @RequestBody AdminOrderQueryRequest request, @RequestHeader("Authorization") String tokenHeader) {
         // 身份校验
         if (!"admin".equals(UserHolder.getRole())) {
             return ResponseBuilder.fail("无权限访问，仅管理员可操作");
         }
 
-        List<Order> orders = adminService.getAllOrdersPaged(
-                request.getUserId(),
-                request.getStoreId(),
-                request.getRiderId(),
-                request.getStatus(),
-                request.getCreatedAt(),
-                request.getEndedAt(),
-                request.getPage(),
-                request.getPageSize()
-        );
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            
+            log.info("管理员查询订单列表: page={}, pageSize={}", request.getPage(), request.getPageSize());
+            
+            List<Map<String, Object>> orders = gatewayApiClient.getOrderList(
+                    request.getUserId(),
+                    request.getStoreId(),
+                    request.getRiderId(),
+                    request.getStatus(),
+                    request.getCreatedAt(),
+                    request.getEndedAt(),
+                    request.getPage(),
+                    request.getPageSize(),
+                    token
+            );
 
-        List<AdminOrderQueryResponse> responses = orders.stream().map(order -> {
-            AdminOrderQueryResponse resp = new AdminOrderQueryResponse();
-            resp.setOrderId(order.getId());
-            resp.setUserId(order.getUserId());
-            resp.setStoreId(order.getStoreId());
-            resp.setRiderId(order.getRiderId());
-            resp.setStatus(order.getStatus());
-            resp.setTotalPrice(order.getTotalPrice());
-            resp.setCreatedAt(order.getCreatedAt());
-            resp.setDeadline(order.getDeadline());
-            resp.setEndedAt(order.getEndedAt());
-            return resp;
-        }).toList();
+            List<AdminOrderQueryResponse> responses = orders.stream().map(order -> {
+                AdminOrderQueryResponse resp = new AdminOrderQueryResponse();
+                resp.setOrderId(((Number) order.get("id")).longValue());
+                Object userIdObj = order.get("userId");
+                if (userIdObj != null) resp.setUserId(((Number) userIdObj).longValue());
+                Object storeIdObj = order.get("storeId");
+                if (storeIdObj != null) resp.setStoreId(((Number) storeIdObj).longValue());
+                Object riderIdObj = order.get("riderId");
+                if (riderIdObj != null) resp.setRiderId(((Number) riderIdObj).longValue());
+                Object statusObj = order.get("status");
+                if (statusObj != null) resp.setStatus(((Number) statusObj).intValue());
+                Object totalPriceObj = order.get("totalPrice");
+                if (totalPriceObj != null) resp.setTotalPrice(BigDecimal.valueOf(((Number) totalPriceObj).doubleValue()));
+                Object createdAt = order.get("createdAt");
+                if (createdAt != null) resp.setCreatedAt(LocalDateTime.parse(createdAt.toString()));
+                Object deadline = order.get("deadline");
+                if (deadline != null) resp.setDeadline(LocalDateTime.parse(deadline.toString()));
+                Object endedAt = order.get("endedAt");
+                if (endedAt != null) resp.setEndedAt(LocalDateTime.parse(endedAt.toString()));
+                return resp;
+            }).collect(Collectors.toList());
 
-        return ResponseBuilder.ok(Map.of("orders", responses));
+            log.info("成功获取订单列表，共{}条记录", responses.size());
+            return ResponseBuilder.ok(Map.of("orders", responses));
+            
+        } catch (Exception e) {
+            log.error("获取订单列表失败", e);
+            return ResponseBuilder.fail("获取订单列表失败: " + e.getMessage());
+        }
     }
 
     /**
      * 管理员分页查看评论
+     * 通过网关API调用网关微服务获取数据
      * 
      * @param request 评论查询请求对象
      * @return CommonResponse 评论列表响应
      */
     @PostMapping("/reviewlist")
-    public CommonResponse getReviewList(@Valid @RequestBody AdminReviewQueryRequest request) {
+    public CommonResponse getReviewList(@Valid @RequestBody AdminReviewQueryRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String role = UserHolder.getRole();
         if (!"admin".equals(role)) {
             return ResponseBuilder.fail("无权限访问，仅管理员可操作");
         }
 
-        int page = request.getPage();
-        int pageSize = request.getPageSize();
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            int page = request.getPage();
+            int pageSize = request.getPageSize();
+            
+            log.info("管理员查询评论列表: page={}, pageSize={}", page, pageSize);
 
-        List<Review> reviews = adminService.getReviewsByCondition(
-                request.getUserId(),
-                request.getStoreId(),
-                request.getProductId(),
-                request.getStartTime(),
-                request.getEndTime(),
-                page,
-                pageSize,
-                request.getStartRating(),
-                request.getEndRating()
-        );
+            List<Map<String, Object>> reviews = gatewayApiClient.getReviewList(
+                    request.getUserId(),
+                    request.getStoreId(),
+                    request.getProductId(),
+                    request.getStartTime(),
+                    request.getEndTime(),
+                    page,
+                    pageSize,
+                    request.getStartRating(),
+                    request.getEndRating(),
+                    token
+            );
 
-        List<AdminReviewQueryResponse> responses = reviews.stream().map(review -> {
-            AdminReviewQueryResponse resp = new AdminReviewQueryResponse();
-            resp.setId(review.getId());
-            resp.setUserId(review.getUserId());
-            resp.setStoreId(review.getStoreId());
-            resp.setProductId(review.getProductId());
-            resp.setRating(review.getRating());
-            resp.setComment(review.getComment());
-            resp.setCreatedAt(review.getCreatedAt());
-            return resp;
-        }).toList();
+            List<AdminReviewQueryResponse> responses = reviews.stream().map(review -> {
+                AdminReviewQueryResponse resp = new AdminReviewQueryResponse();
+                resp.setId(((Number) review.get("id")).longValue());
+                Object userIdObj = review.get("userId");
+                if (userIdObj != null) resp.setUserId(((Number) userIdObj).longValue());
+                Object storeIdObj = review.get("storeId");
+                if (storeIdObj != null) resp.setStoreId(((Number) storeIdObj).longValue());
+                Object productIdObj = review.get("productId");
+                if (productIdObj != null) resp.setProductId(((Number) productIdObj).longValue());
+                Object ratingObj = review.get("rating");
+                if (ratingObj != null) resp.setRating(BigDecimal.valueOf(((Number) ratingObj).intValue()));
+                resp.setComment((String) review.get("comment"));
+                Object createdAt = review.get("createdAt");
+                if (createdAt != null) resp.setCreatedAt(LocalDateTime.parse(createdAt.toString()));
+                return resp;
+            }).collect(Collectors.toList());
 
-        return ResponseBuilder.ok(Map.of("reviews", responses));
+            log.info("成功获取评论列表，共{}条记录", responses.size());
+            return ResponseBuilder.ok(Map.of("reviews", responses));
+            
+        } catch (Exception e) {
+            log.error("获取评论列表失败", e);
+            return ResponseBuilder.fail("获取评论列表失败: " + e.getMessage());
+        }
     }
 
     /**
      * 管理员搜索店铺和商品
+     * 通过网关API调用商家微服务获取数据
      * 
      * @param request 搜索请求对象
      * @return CommonResponse 搜索结果响应
      */
     @PostMapping("/search")
-    public CommonResponse searchStoreAndProduct(@Valid @RequestBody AdminSearchRequest request) {
+    public CommonResponse searchStoreAndProduct(@Valid @RequestBody AdminSearchRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String role = UserHolder.getRole();
         if (!"admin".equals(role)) {
             return ResponseBuilder.fail("无权限访问，仅管理员可操作");
@@ -437,48 +606,90 @@ public class AdminController {
             return ResponseBuilder.fail("关键词不能为空");
         }
 
-        List<Map<String, Object>> raw = adminService.searchStoreAndProductByKeyword(keyword.trim());
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            
+            log.info("管理员搜索店铺和商品: keyword={}", keyword);
+            
+            List<Map<String, Object>> raw = gatewayApiClient.searchStoreAndProduct(keyword.trim(), token);
 
-        List<AdminSearchResponse> responses = raw.stream().map(item -> {
-            AdminSearchResponse resp = new AdminSearchResponse();
-            resp.setStoreId((Long) item.get("store_id"));
-            resp.setStoreName((String) item.get("store_name"));
-            resp.setProducts((Map<String, Long>) item.get("products"));
-            return resp;
-        }).toList();
+            List<AdminSearchResponse> responses = raw.stream().map(item -> {
+                AdminSearchResponse resp = new AdminSearchResponse();
+                Object storeIdObj = item.get("store_id");
+                if (storeIdObj != null) resp.setStoreId(((Number) storeIdObj).longValue());
+                resp.setStoreName((String) item.get("store_name"));
+                @SuppressWarnings("unchecked")
+                Map<String, Long> products = (Map<String, Long>) item.get("products");
+                resp.setProducts(products);
+                return resp;
+            }).collect(Collectors.toList());
 
-        return ResponseBuilder.ok(Map.of("results", responses));
+            log.info("搜索完成，共{}条结果", responses.size());
+            return ResponseBuilder.ok(Map.of("results", responses));
+            
+        } catch (Exception e) {
+            log.error("搜索失败", e);
+            return ResponseBuilder.fail("搜索失败: " + e.getMessage());
+        }
     }
 
     /**
      * 根据订单ID搜索订单
+     * 通过网关API调用网关微服务获取数据
      * 
      * @param request 订单搜索请求对象
      * @return CommonResponse 订单搜索结果
      */
     @PostMapping("/search-order-by-id")
-    public CommonResponse searchOrderById(@Valid @RequestBody AdminSearchOrderByIdRequest request) {
+    public CommonResponse searchOrderById(@Valid @RequestBody AdminSearchOrderByIdRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String role = UserHolder.getRole();
         if (!"admin".equals(role)) {
             return ResponseBuilder.fail("无权限访问，仅管理员可操作");
         }
-        Order order = adminService.getOrderById(request.getOrderId());
-        return ResponseBuilder.ok(Map.of("order", order));
+        
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            
+            log.info("管理员根据ID搜索订单: orderId={}", request.getOrderId());
+            
+            Map<String, Object> order = gatewayApiClient.getOrderById(request.getOrderId(), token);
+            
+            log.info("订单搜索完成");
+            return ResponseBuilder.ok(Map.of("order", order));
+            
+        } catch (Exception e) {
+            log.error("订单搜索失败", e);
+            return ResponseBuilder.fail("订单搜索失败: " + e.getMessage());
+        }
     }
 
     /**
      * 根据评论ID搜索评论
+     * 通过网关API调用网关微服务获取数据
      * 
      * @param request 评论搜索请求对象
      * @return CommonResponse 评论搜索结果
      */
     @PostMapping("/search-review-by-id")
-    public CommonResponse searchReviewById(@Valid @RequestBody AdminSearchReviewByIdRequest request) {
+    public CommonResponse searchReviewById(@Valid @RequestBody AdminSearchReviewByIdRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String role = UserHolder.getRole();
         if (!"admin".equals(role)) {
             return ResponseBuilder.fail("无权限访问，仅管理员可操作");
         }
-        Review review = adminService.getReviewById(request.getReviewId());
-        return ResponseBuilder.ok(Map.of("review", review));
+        
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            
+            log.info("管理员根据ID搜索评论: reviewId={}", request.getReviewId());
+            
+            Map<String, Object> review = gatewayApiClient.getReviewById(request.getReviewId(), token);
+            
+            log.info("评论搜索完成");
+            return ResponseBuilder.ok(Map.of("review", review));
+            
+        } catch (Exception e) {
+            log.error("评论搜索失败", e);
+            return ResponseBuilder.fail("评论搜索失败: " + e.getMessage());
+        }
     }
 }
