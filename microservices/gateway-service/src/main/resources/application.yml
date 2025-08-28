@@ -1,32 +1,65 @@
-# 订单服务配置文件
-# 配置订单服务的数据库连接、端口等信息
+# 网关服务配置文件
+# 统一网关服务，提供路由转发、消息传递、数据同步等功能
 
 server:
   port: 8080
 
 spring:
   application:
-    name: order-service
+    name: gateway-service
   
-  # 数据库配置 - 订单服务独立数据库
+  # 数据库配置 - 网关服务数据库
   datasource:
     url: jdbc:mysql://localhost:3306/baoleme_gateway?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
-    password: 88159918
+    password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
     
-  # Redis配置
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      database: 0
-      timeout: 3000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
+  # 多数据源配置
+  datasource:
+    # 用户数据库
+    user:
+      jdbc-url: jdbc:mysql://localhost:3306/baoleme_user?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      username: root
+      password: root
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: UserHikariPool
+        maximum-pool-size: 10
+        minimum-idle: 5
+    
+    # 商家数据库
+    merchant:
+      jdbc-url: jdbc:mysql://localhost:3306/baoleme_merchant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      username: root
+      password: root
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: MerchantHikariPool
+        maximum-pool-size: 10
+        minimum-idle: 5
+    
+    # 骑手数据库
+    rider:
+      jdbc-url: jdbc:mysql://localhost:3306/baoleme_rider?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      username: root
+      password: 88159918
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: RiderHikariPool
+        maximum-pool-size: 10
+        minimum-idle: 5
+    
+    # 管理员数据库
+    admin:
+      jdbc-url: jdbc:mysql://localhost:3306/baoleme_admin?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      username: root
+      password: root
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: AdminHikariPool
+        maximum-pool-size: 10
+        minimum-idle: 5
 
 # MyBatis-Plus配置
 mybatis-plus:
@@ -44,6 +77,68 @@ mybatis-plus:
 logging:
   level:
     org.demo.gateway: debug
-    org.springframework.security: debug
+    org.springframework.jdbc: debug
+    com.zaxxer.hikari: debug
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true
+
+# 自定义配置
+gateway:
+  # 数据库操作配置
+  database:
+    # 操作超时时间（毫秒）
+    timeout: 30000
+    # 批量操作大小
+    batch-size: 1000
+    # 是否启用事务
+    enable-transaction: true
+    # 连接池监控
+    pool-monitoring: true
+  
+  # 安全认证配置
+  security:
+    enabled: true
+    secret-key: "baoleme-gateway-secret-2025-${random.value}"
+    token-expiry: 300  # 令牌有效期（秒），默认5分钟
+  
+  # 表映射配置
+  table-mapping:
+    # 用户相关表
+    user: user
+    user_favorite: user
+    user_coupon: user
+    user_view_history: user
+    
+    # 商家相关表
+    merchant: merchant
+    store: merchant
+    product: merchant
+    sales: merchant
+    
+    # 骑手相关表
+    rider: rider
+    
+    # 管理员相关表
+    admin: admin
+    
+    # 订单相关表（网关数据库）
+    order: gateway
+    order_item: gateway
+    review: gateway
+    cart: gateway
+    coupon: gateway
+    message: gateway
+    favorite: user
+    browse_history: user
