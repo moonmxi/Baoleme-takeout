@@ -53,8 +53,7 @@ CREATE TABLE IF NOT EXISTS favorite (
 CREATE TABLE IF NOT EXISTS browse_history (
     user_id BIGINT NOT NULL,
     store_id BIGINT NOT NULL,
-    created_at  DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uc_user_store (user_id, store_id)  -- 联合唯一约束
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 插入用户测试数据

@@ -1,5 +1,5 @@
 # 管理员服务配置文件
-# 配置管理员服务的数据库连接、端口等信息
+# 重构后的管理员服务配置，仅处理管理员认证，其他数据通过网关API调用
 
 server:
   port: 8084
@@ -12,8 +12,16 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/baoleme_admin?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
-    password: root
+    password: 88159918
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: AdminHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 3
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
     
   # Redis配置
   data:
@@ -27,6 +35,9 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
+          max-wait: -1ms
+      connect-timeout: 10000ms
+      command-timeout: 5000ms
   
   # Jackson配置 - 支持下划线到驼峰自动转换
   jackson:
@@ -38,6 +49,12 @@ spring:
       write-dates-as-timestamps: false
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
+
+# 网关服务配置
+gateway:
+  service:
+    base-url: http://localhost:8080
+    timeout: 30
 
 # MyBatis-Plus配置
 mybatis-plus:
@@ -51,10 +68,29 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+# 网关服务配置已在上面定义
+
+# WebClient配置
+webclient:
+  connect-timeout: 5000
+  read-timeout: 30
+  write-timeout: 30
+  max-connections: 100
+
+# 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
 # 日志配置
 logging:
   level:
-    org.demo.adminservice: debug
-    org.springframework.security: debug
+    org.demo.adminservice: info
+    org.springframework.web.reactive.function.client: warn
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
