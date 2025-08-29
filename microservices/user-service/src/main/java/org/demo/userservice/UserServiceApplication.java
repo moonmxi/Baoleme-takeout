@@ -8,6 +8,7 @@
  */
 package org.demo.userservice;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -16,6 +17,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * 提供用户注册、登录、个人信息管理等功能
  */
 @SpringBootApplication
+@MapperScan("org.demo.userservice.mapper")
 public class UserServiceApplication {
 
     /**

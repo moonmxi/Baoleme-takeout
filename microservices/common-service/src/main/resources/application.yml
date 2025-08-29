@@ -13,7 +13,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/baoleme_common?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
-    password: 88159918
+    password: wqy20050308
     driver-class-name: com.mysql.cj.jdbc.Driver
     
   # Redis配置

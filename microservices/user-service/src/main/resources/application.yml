@@ -10,7 +10,7 @@ spring:
   
   # 数据库配置 - 用户服务独立数据库
   datasource:
-    url: jdbc:mysql://localhost:3306/baoleme?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/baoleme_user?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
     password: wqy20050308
     driver-class-name: com.mysql.cj.jdbc.Driver
