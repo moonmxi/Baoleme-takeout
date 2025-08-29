@@ -106,18 +106,64 @@ public class GatewayApiClient {
      */
     public List<Map<String, Object>> getRiderList(int page, int pageSize, String keyword, Long startId, Long endId,
                                                    Integer status, Integer dispatchMode, Long startBalance, Long endBalance, String token) {
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("page", page);
-        requestBody.put("pageSize", pageSize);
-        if (keyword != null) requestBody.put("keyword", keyword);
-        if (startId != null) requestBody.put("startId", startId);
-        if (endId != null) requestBody.put("endId", endId);
-        if (status != null) requestBody.put("status", status);
-        if (dispatchMode != null) requestBody.put("dispatchMode", dispatchMode);
-        if (startBalance != null) requestBody.put("startBalance", startBalance);
-        if (endBalance != null) requestBody.put("endBalance", endBalance);
-
-        return callGatewayApi("/database/query", requestBody, token, "rider");
+        try {
+            log.info("调用网关API获取骑手列表: page={}, pageSize={}", page, pageSize);
+            
+            // 构建查询条件
+            Map<String, Object> conditions = new HashMap<>();
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                conditions.put("username", keyword);
+            }
+            if (startId != null) {
+                conditions.put("id_gte", startId);
+            }
+            if (endId != null) {
+                conditions.put("id_lte", endId);
+            }
+            if (status != null) {
+                conditions.put("status", status);
+            }
+            if (dispatchMode != null) {
+                conditions.put("dispatch_mode", dispatchMode);
+            }
+            if (startBalance != null) {
+                conditions.put("balance_gte", startBalance);
+            }
+            if (endBalance != null) {
+                conditions.put("balance_lte", endBalance);
+            }
+            
+            Map<String, Object> requestBody = new HashMap<>();
+            if (!conditions.isEmpty()) {
+                requestBody.put("condition", conditions);
+            }
+            
+            String url = gatewayBaseUrl + "/api/database/rider/page?page=" + page + "&pageSize=" + pageSize;
+            
+            Map<String, Object> response = webClient.post()
+                    .uri(url)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .timeout(Duration.ofSeconds(requestTimeout))
+                    .block();
+            
+            if (response != null && Boolean.TRUE.equals(response.get("success"))) {
+                Map<String, Object> data = (Map<String, Object>) response.get("data");
+                if (data != null) {
+                    return (List<Map<String, Object>>) data.get("records");
+                }
+            }
+            
+            log.warn("网关API返回异常响应: {}", response);
+            return new ArrayList<>();
+            
+        } catch (Exception e) {
+            log.error("调用网关API获取骑手列表失败", e);
+            throw new RuntimeException("网关API调用异常: " + e.getMessage(), e);
+        }
     }
 
     /**

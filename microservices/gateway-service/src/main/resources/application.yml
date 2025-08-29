@@ -7,12 +7,27 @@ server:
 spring:
   application:
     name: gateway-service
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+      connect-timeout: 10000ms
+      command-timeout: 5000ms
   
   # 多数据源配置
   datasource:
     # 网关数据库（主数据源）
     primary:
-      jdbc-url: jdbc:mysql://localhost:3306/baoleme_gateway?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      jdbc-url: jdbc:mysql://localhost:3306/baoleme_common?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
       username: root
       password: 88159918
       driver-class-name: com.mysql.cj.jdbc.Driver
@@ -127,9 +142,7 @@ gateway:
   table-mapping:
     # 用户服务相关表 -> baoleme_user 数据库
     user: user
-    user_coupon: gateway  # 用户优惠券表在网关数据库中
     favorite: user
-    browse_history: user
     
     # 商家服务相关表 -> baoleme_merchant 数据库
     merchant: merchant
@@ -143,29 +156,29 @@ gateway:
     # 管理员服务相关表 -> baoleme_admin 数据库
     admin: admin
     
-    # 网关服务相关表 -> baoleme_gateway 数据库
+    # 网关服务相关表 -> baoleme_common 数据库
     # 订单相关
-    order: gateway
-    order_item: gateway
+    order: common
+    order_item: common
     
     # 评价相关
-    review: gateway
+    review: common
     
     # 购物车相关
-    cart: gateway
+    cart: user
     
     # 优惠券相关
-    coupon: gateway
+    coupon: common
     
     # 消息相关
-    message: gateway
+    message: common
     
     # 数据同步相关
-    sync_log: gateway
-    message_log: gateway
+    sync_log: common
+    message_log: common
     
     # 默认数据库配置
-    default-datasource: gateway
+    default-datasource: common
     
     # 数据库别名映射
     datasource-aliases:
@@ -173,6 +186,6 @@ gateway:
       merchant-db: merchant
       rider-db: rider
       admin-db: admin
-      gateway-db: gateway
-      order-db: gateway
-      message-db: gateway
+      gateway-db: common
+      order-db: common
+      message-db: common
