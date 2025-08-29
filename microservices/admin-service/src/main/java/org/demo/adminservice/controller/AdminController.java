@@ -100,12 +100,10 @@ public class AdminController {
             }
 
             // 生成 token
-            String token = JwtUtils.createToken(admin.getId(), "admin", null);
+            String token = JwtUtils.createToken(admin.getId(), "admin", String.valueOf(request.getAdminId()));
 
-            // 将 token 存入 Redis（用于拦截器校验）
-            String redisTokenKey = "admin:token:" + token;
-            redisTemplate.opsForValue().set(redisTokenKey, admin.getId(), 1, TimeUnit.DAYS);
-
+            // 存储token映射（用于JWT认证过滤器验证）
+            redisTemplate.opsForValue().set("admin:token:" + token, admin.getId(), 1, TimeUnit.DAYS);
             // 记录登录状态（防止重复登录）
             redisTemplate.opsForValue().set(redisLoginKey, token, 1, TimeUnit.DAYS);
 
@@ -133,17 +131,18 @@ public class AdminController {
     public CommonResponse logout(@RequestHeader("Authorization") String tokenHeader) {
         try {
             String token = tokenHeader.replace("Bearer ", "");
-            String redisTokenKey = "admin:token:" + token;
-
-            // 删除 token -> id 映射
-            Object userId = redisTemplate.opsForValue().get(redisTokenKey);
+            String tokenKey = "admin:token:" + token;
+            
+            // 从Redis中获取用户ID
+            Object userId = redisTemplate.opsForValue().get(tokenKey);
             if (userId != null) {
                 String redisLoginKey = "admin:login:" + userId;
                 redisTemplate.delete(redisLoginKey);
                 log.info("管理员登出成功: adminId={}", userId);
             }
-
-            redisTemplate.delete(redisTokenKey);
+            
+            // 删除token映射
+            redisTemplate.delete(tokenKey);
             return ResponseBuilder.ok("登出成功");
             
         } catch (Exception e) {

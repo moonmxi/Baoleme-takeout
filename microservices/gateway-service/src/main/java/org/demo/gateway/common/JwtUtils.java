@@ -1,15 +1,17 @@
 /**
- * JWT工具类
- * 提供JWT token的创建、解析和验证功能，支持多角色身份认证
+ * JWT工具类 - 网关服务版本
+ * 提供JWT token的创建、解析和验证功能，与admin-service保持一致
+ * 用于网关层统一处理JWT令牌验证
  * 
  * @author Baoleme Team
  * @version 1.0
  * @since 2025-01-25
  */
-package org.demo.adminservice.common;
+package org.demo.gateway.common;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -18,12 +20,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 通用 JWT 工具类，支持多角色身份认证
+ * 网关服务JWT工具类
+ * 与admin-service使用相同的密钥和算法，确保token兼容性
  */
+@Slf4j
 public class JwtUtils {
 
     /**
-     * JWT签名密钥
+     * JWT签名密钥 - 与admin-service保持一致
      */
     private static final String SECRET = "baoleme_secret_key_1234567890123456"; // 至少 32 字符
     
@@ -81,6 +85,7 @@ public class JwtUtils {
             payload.put("username", claims.get("username", String.class));
             return payload;
         } catch (JwtException e) {
+            log.warn("JWT token解析失败: {}", e.getMessage());
             return null;
         }
     }
@@ -100,6 +105,7 @@ public class JwtUtils {
                     .getBody();
             return claims.getExpiration().before(new Date());
         } catch (Exception e) {
+            log.warn("JWT token过期检查失败: {}", e.getMessage());
             return true;
         }
     }
@@ -122,6 +128,7 @@ public class JwtUtils {
                     .parseClaimsJws(token);
             return !isExpired(token);
         } catch (JwtException e) {
+            log.warn("JWT token验证失败: {}", e.getMessage());
             return false;
         }
     }

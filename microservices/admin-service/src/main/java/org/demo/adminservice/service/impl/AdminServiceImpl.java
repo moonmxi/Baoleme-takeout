@@ -14,7 +14,7 @@ import org.demo.adminservice.mapper.AdminMapper;
 import org.demo.adminservice.pojo.Admin;
 import org.demo.adminservice.service.AdminService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+// 移除BCrypt加密依赖，改为简单字符串匹配
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,11 +34,7 @@ public class AdminServiceImpl implements AdminService {
     @Autowired
     private AdminMapper adminMapper;
 
-    /**
-     * 密码加密器
-     */
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    // 移除密码加密器，改为简单字符串匹配验证
 
     /**
      * 管理员登录
@@ -86,7 +82,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     /**
-     * 验证管理员密码
+     * 验证管理员密码 - 简化为字符串匹配
      * 
      * @param admin 管理员实体
      * @param rawPassword 原始密码
@@ -98,9 +94,8 @@ public class AdminServiceImpl implements AdminService {
             if (admin == null || admin.getPassword() == null || rawPassword == null) {
                 return false;
             }
-            // 临时跳过密码验证用于测试
-            return true;
-            // return passwordEncoder.matches(rawPassword, admin.getPassword());
+            // 简化为直接字符串匹配
+            return admin.getPassword().equals(rawPassword.trim());
         } catch (Exception e) {
             log.error("密码验证失败", e);
             return false;
@@ -108,7 +103,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     /**
-     * 更新管理员密码
+     * 更新管理员密码 - 简化为明文存储
      * 
      * @param adminId 管理员ID
      * @param newPassword 新密码
@@ -126,7 +121,8 @@ public class AdminServiceImpl implements AdminService {
                 return false;
             }
 
-            admin.setPassword(passwordEncoder.encode(newPassword.trim()));
+            // 简化为明文密码存储
+            admin.setPassword(newPassword.trim());
             admin.setUpdatedAt(LocalDateTime.now());
             
             return adminMapper.updateById(admin) > 0;

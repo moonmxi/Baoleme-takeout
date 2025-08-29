@@ -23,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -51,15 +52,22 @@ public class DatabaseController {
      * 
      * @param tableName 表名
      * @param id 主键ID
+     * @param request HTTP请求对象（用于获取用户信息）
      * @return 查询结果
      */
     @GetMapping("/{tableName}/{id}")
     public ResponseEntity<ApiResponse> selectById(
             @PathVariable @NotBlank(message = "表名不能为空") String tableName,
-            @PathVariable @NotNull(message = "ID不能为空") @Min(value = 1, message = "ID必须大于0") Long id) {
+            @PathVariable @NotNull(message = "ID不能为空") @Min(value = 1, message = "ID必须大于0") Long id,
+            HttpServletRequest request) {
         
         try {
-            log.info("查询单条记录: 表={}, ID={}", tableName, id);
+            // 获取当前用户信息
+            Long userId = (Long) request.getAttribute("userId");
+            String role = (String) request.getAttribute("role");
+            String username = (String) request.getAttribute("username");
+            
+            log.info("用户 {} (角色: {}) 查询单条记录: 表={}, ID={}", username, role, tableName, id);
             
             Map<String, Object> result = databaseService.selectById(tableName, id);
             
@@ -80,18 +88,26 @@ public class DatabaseController {
      * 根据条件查询记录列表
      * 
      * @param tableName 表名
-     * @param request 查询条件
+     * @param conditionRequest 查询条件
+     * @param request HTTP请求对象（用于获取用户信息）
      * @return 查询结果列表
      */
     @PostMapping("/{tableName}/select")
     public ResponseEntity<ApiResponse> selectByConditions(
             @PathVariable @NotBlank(message = "表名不能为空") String tableName,
-            @RequestBody(required = false) ConditionRequest request) {
+            @RequestBody(required = false) ConditionRequest conditionRequest,
+            HttpServletRequest request) {
         
         try {
-            log.info("条件查询记录: 表={}, 条件={}", tableName, request != null ? request.getCondition() : null);
+            // 获取当前用户信息
+            Long userId = (Long) request.getAttribute("userId");
+            String role = (String) request.getAttribute("role");
+            String username = (String) request.getAttribute("username");
             
-            Map<String, Object> conditions = request != null ? request.getCondition() : new HashMap<>();
+            log.info("用户 {} (角色: {}) 条件查询记录: 表={}, 条件={}", 
+                    username, role, tableName, conditionRequest != null ? conditionRequest.getCondition() : null);
+            
+            Map<String, Object> conditions = conditionRequest != null ? conditionRequest.getCondition() : new HashMap<>();
             List<Map<String, Object>> results = databaseService.selectByConditions(tableName, conditions);
             
             Map<String, Object> responseData = new HashMap<>();
@@ -113,7 +129,8 @@ public class DatabaseController {
      * @param tableName 表名
      * @param page 页码
      * @param pageSize 每页大小
-     * @param request 查询条件
+     * @param conditionRequest 查询条件
+     * @param request HTTP请求对象（用于获取用户信息）
      * @return 分页查询结果
      */
     @PostMapping("/{tableName}/page")
@@ -121,13 +138,19 @@ public class DatabaseController {
             @PathVariable @NotBlank(message = "表名不能为空") String tableName,
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "页码必须大于0") int page,
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "每页大小必须大于0") int pageSize,
-            @RequestBody(required = false) ConditionRequest request) {
+            @RequestBody(required = false) ConditionRequest conditionRequest,
+            HttpServletRequest request) {
         
         try {
-            log.info("分页查询记录: 表={}, 页码={}, 页大小={}, 条件={}", 
-                    tableName, page, pageSize, request != null ? request.getCondition() : null);
+            // 获取当前用户信息
+            Long userId = (Long) request.getAttribute("userId");
+            String role = (String) request.getAttribute("role");
+            String username = (String) request.getAttribute("username");
             
-            Map<String, Object> conditions = request != null ? request.getCondition() : new HashMap<>();
+            log.info("用户 {} (角色: {}) 分页查询记录: 表={}, 页码={}, 页大小={}, 条件={}", 
+                    username, role, tableName, page, pageSize, conditionRequest != null ? conditionRequest.getCondition() : null);
+            
+            Map<String, Object> conditions = conditionRequest != null ? conditionRequest.getCondition() : new HashMap<>();
             
             List<Map<String, Object>> records = databaseService.selectByPage(tableName, conditions, page, pageSize);
             long total = databaseService.countByConditions(tableName, conditions);

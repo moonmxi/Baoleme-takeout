@@ -63,36 +63,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             
-            // 解析JWT令牌
-            Map<String, Object> payload = JwtUtils.parsePayload(token);
-            if (payload != null) {
-                Number idNumber = (Number) payload.get("user_id");
-                String role = (String) payload.get("role");
-                
-                if (idNumber != null && role != null) {
-                    // 验证Redis中的令牌
-                    String redisKey = role + ":token:" + token;
-                    Object storedId = redisTemplate.opsForValue().get(redisKey);
+            // 验证JWT令牌
+            if (JwtUtils.validateToken(token)) {
+                // 解析JWT令牌
+                Map<String, Object> payload = JwtUtils.parsePayload(token);
+                if (payload != null) {
+                    Number idNumber = (Number) payload.get("user_id");
+                    String role = (String) payload.get("role");
                     
-                    if (storedId != null) {
-                        // 设置用户信息到ThreadLocal
-                        Long userId = idNumber.longValue();
-                        UserHolder.set(userId, role);
+                    if (idNumber != null && role != null) {
+                        // 验证Redis中的令牌（与其他微服务保持一致的验证方式）
+                        String redisKey = role + ":token:" + token;
+                        Object storedId = redisTemplate.opsForValue().get(redisKey);
                         
-                        // 设置Spring Security认证信息
-                        UsernamePasswordAuthenticationToken authentication = 
-                            new UsernamePasswordAuthenticationToken(userId, null, new ArrayList<>());
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
-                        
-                        System.out.println("JWT认证成功，用户ID: " + userId + ", 角色: " + role);
+                        if (storedId != null) {
+                            // 设置用户信息到ThreadLocal
+                            Long userId = idNumber.longValue();
+                            UserHolder.set(userId, role);
+                            
+                            // 设置Spring Security认证信息
+                            UsernamePasswordAuthenticationToken authentication = 
+                                new UsernamePasswordAuthenticationToken(userId, null, new ArrayList<>());
+                            SecurityContextHolder.getContext().setAuthentication(authentication);
+                            
+                            System.out.println("JWT认证成功，用户ID: " + userId + ", 角色: " + role);
+                        } else {
+                            System.out.println("Redis中未找到有效令牌");
+                        }
                     } else {
-                        System.out.println("Redis中未找到有效令牌");
+                        System.out.println("JWT载荷中缺少用户ID或角色信息");
                     }
                 } else {
-                    System.out.println("JWT载荷中缺少用户ID或角色信息");
+                    System.out.println("JWT令牌解析失败");
                 }
             } else {
-                System.out.println("JWT令牌解析失败");
+                System.out.println("JWT令牌验证失败");
             }
         } else {
             System.out.println("请求头中未找到Authorization或格式不正确");
