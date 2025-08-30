@@ -1,14 +1,17 @@
 /**
  * 用户控制器
  * 处理用户相关的HTTP请求，包括注册、登录、个人信息管理等功能
+ * 重构后跨数据库操作直接调用GatewayApiClient
  * 
  * @author Baoleme Team
- * @version 1.0
+ * @version 2.0
  * @since 2025-01-25
  */
 package org.demo.userservice.controller;
 
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
+import org.demo.userservice.client.GatewayApiClient;
 import org.demo.userservice.common.CommonResponse;
 import org.demo.userservice.common.ResponseBuilder;
 import org.demo.userservice.common.JwtUtils;
@@ -24,14 +27,15 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 用户控制器类
  * 提供用户注册、登录、信息管理、收藏、优惠券等功能的REST API
  */
+@Slf4j
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -46,6 +50,12 @@ public class UserController {
      */
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    /**
+     * 网关API客户端，用于跨数据库操作
+     */
+    @Autowired
+    private GatewayApiClient gatewayApiClient;
 
     /**
      * 构造函数
@@ -236,23 +246,84 @@ public class UserController {
 
     /**
      * 获取收藏店铺列表接口
+     * 通过网关API调用获取店铺详细信息
      * 
      * @param request 获取收藏店铺请求对象
      * @return 收藏店铺列表响应
      */
     @PostMapping("/favorite/watch")
-    public CommonResponse getFavoriteStores(@Valid@RequestBody UserGetFavoriteStoresRequest request) {
+    public CommonResponse getFavoriteStores(@Valid@RequestBody UserGetFavoriteStoresRequest request, @RequestHeader("Authorization") String tokenHeader) {
         Long userId = UserHolder.getId();
-        String type = request.getType();
-        BigDecimal distance = request.getDistance();
-        BigDecimal wishPrice = request.getWishPrice();
-        BigDecimal startRating = request.getStartRating();
-        BigDecimal endRating = request.getEndRating();
-        Integer page = request.getPage();
-        Integer pageSize = request.getPageSize();
-        List<UserFavoriteResponse> stores = userService.getFavoriteStores(userId,type, distance,wishPrice,startRating,endRating,page,pageSize);
-
-        return ResponseBuilder.ok(stores);
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            int page = request.getPage();
+            int pageSize = request.getPageSize();
+            
+            log.info("用户获取收藏店铺列表: userId={}, page={}, pageSize={}", userId, page, pageSize);
+            
+            // 通过网关API获取用户收藏店铺列表
+            List<Map<String, Object>> favoriteStores = gatewayApiClient.getUserFavoriteStores(userId, page, pageSize, token);
+            
+            List<UserFavoriteResponse> responses = favoriteStores.stream().map(favorite -> {
+                UserFavoriteResponse resp = new UserFavoriteResponse();
+                
+                // 设置店铺ID
+                Object storeIdObj = favorite.get("id");
+                if (storeIdObj != null) {
+                    resp.setStoreId(((Number) storeIdObj).longValue());
+                }
+                
+                // 设置店铺名称 - 修正字段名
+                resp.setName((String) favorite.get("name"));
+                
+                // 设置店铺类型 - 修正字段名
+                resp.setType((String) favorite.get("type"));
+                
+                // 设置店铺描述 - 修正字段名
+                resp.setDescription((String) favorite.get("description"));
+                
+                // 设置店铺位置 - 修正字段名
+                resp.setLocation((String) favorite.get("location"));
+                
+                // 设置评分
+                Object ratingObj = favorite.get("rating");
+                if (ratingObj != null) {
+                    if (ratingObj instanceof BigDecimal) {
+                        resp.setRating((BigDecimal) ratingObj);
+                    } else if (ratingObj instanceof Number) {
+                        resp.setRating(BigDecimal.valueOf(((Number) ratingObj).doubleValue()));
+                    }
+                }
+                
+                // 设置店铺状态
+                Object statusObj = favorite.get("status");
+                if (statusObj != null) {
+                    resp.setStatus(((Number) statusObj).intValue());
+                }
+                
+                // 设置店铺图片 - 修正字段名
+                resp.setImage((String) favorite.get("image"));
+                
+                // 设置收藏时间
+                Object createdAtObj = favorite.get("created_at");
+                if (createdAtObj != null) {
+                    if (createdAtObj instanceof LocalDateTime) {
+                        resp.setCreatedAt((LocalDateTime) createdAtObj);
+                    } else {
+                        resp.setCreatedAt(LocalDateTime.parse(createdAtObj.toString()));
+                    }
+                }
+                
+                return resp;
+            }).collect(Collectors.toList());
+            
+            log.info("成功获取用户收藏店铺列表，共{}条记录", responses.size());
+            return ResponseBuilder.ok(Map.of("favorites", responses));
+            
+        } catch (Exception e) {
+            log.error("获取收藏店铺失败", e);
+            return ResponseBuilder.fail("获取收藏店铺失败: " + e.getMessage());
+        }
     }
 
     /**
@@ -275,42 +346,92 @@ public class UserController {
 
     /**
      * 搜索店铺和商品接口
+     * 通过网关API调用搜索服务
      * 
      * @param request 搜索请求对象
      * @return 搜索结果响应
      */
     @PostMapping("/search")
-    public CommonResponse searchStoreAndProduct(@Valid @RequestBody UserSearchRequest request) {
+    public CommonResponse searchStoreAndProduct(@Valid @RequestBody UserSearchRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String keyword = request.getKeyword();
         if (keyword == null || keyword.trim().isEmpty()) {
             return ResponseBuilder.fail("关键词不能为空");
         }
-        BigDecimal  distance = request.getDistance();
-        BigDecimal wishPrice = request.getWishPrice();
-        BigDecimal startRating = request.getStartRating();
-        BigDecimal endRating = request.getEndRating();
-        Integer page = request.getPage();
-        Integer pageSize = request.getPageSize();
-
-        System.out.println(
-                "关键词是"+keyword+"距离是"+distance+"价格是"+wishPrice+"开始是"+startRating+"结束是"+endRating+"页数是"+page+"页大小是"+pageSize
-        );
-
-        List<UserSearchResponse> stores = userService.searchStores(keyword.trim(),distance,wishPrice,startRating,endRating,page,pageSize);
-        return ResponseBuilder.ok(Map.of("results", stores));
+        
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            
+            // 使用现有的searchStoreAndProduct方法
+            List<Map<String, Object>> searchResults = gatewayApiClient.searchStoreAndProduct(
+                keyword.trim(),
+                token
+            );
+            
+            // 处理搜索结果
+            List<UserSearchResponse> responses = new ArrayList<>();
+            
+            if (searchResults != null && !searchResults.isEmpty()) {
+                responses = searchResults.stream().map(store -> {
+                     UserSearchResponse response = new UserSearchResponse();
+                     response.setStoreId(((Number) store.get("id")).longValue());
+                     response.setName((String) store.get("name"));
+                     response.setType((String) store.get("type"));
+                     response.setDescription((String) store.get("description"));
+                     response.setLocation((String) store.get("location"));
+                     response.setRating((BigDecimal) store.get("rating"));
+                     response.setStatus((Integer) store.get("status"));
+                     response.setImage((String) store.get("image"));
+                     if (store.get("created_at") != null) {
+                         response.setCreatedAt((LocalDateTime) store.get("created_at"));
+                     }
+                     return response;
+                 }).collect(Collectors.toList());
+            }
+            
+            return ResponseBuilder.ok(Map.of("results", responses));
+        } catch (Exception e) {
+            return ResponseBuilder.fail("搜索失败: " + e.getMessage());
+        }
     }
 
     /**
      * 提交评价接口
+     * 通过网关API调用评价服务
      * 
      * @param request 评价请求对象
      * @return 评价结果响应
      */
     @PostMapping("/review")
-    public CommonResponse submitReview(@Valid @RequestBody UserReviewRequest request) {
+    public CommonResponse submitReview(@Valid @RequestBody UserReviewRequest request, @RequestHeader("Authorization") String tokenHeader) {
         Long userId = UserHolder.getId();
-        UserReviewResponse response = userService.submitReview(userId, request);
-        return ResponseBuilder.ok(response);
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            
+            // 构建评价数据
+            Map<String, Object> reviewData = new HashMap<>();
+            reviewData.put("userId", userId);
+            reviewData.put("storeId", request.getStoreId());
+            reviewData.put("productId", request.getProductId());
+            reviewData.put("rating", request.getRating());
+            reviewData.put("comment", request.getComment());
+            reviewData.put("images", request.getImages());
+            
+            // 通过网关API提交评价
+            boolean success = gatewayApiClient.submitReview(reviewData, token);
+            
+            if (!success) {
+                return ResponseBuilder.fail("评价提交失败");
+            }
+            
+            UserReviewResponse response = new UserReviewResponse();
+            response.setComment(request.getComment());
+            response.setRating(request.getRating());
+            response.setImages(request.getImages() != null ? request.getImages() : List.of());
+            
+            return ResponseBuilder.ok(response);
+        } catch (Exception e) {
+            return ResponseBuilder.fail("评价提交失败: " + e.getMessage());
+        }
     }
 
     /**
@@ -327,31 +448,66 @@ public class UserController {
 
     /**
      * 更新浏览历史接口
+     * 通过网关API调用浏览历史服务
      * 
      * @param request 更新浏览历史请求对象
      * @return 更新结果响应
      */
     @PostMapping("/updateViewHistory")
-    public CommonResponse updateViewHistory(@Valid @RequestBody UserUpdateViewHistoryRequest request) {
+    public CommonResponse updateViewHistory(@Valid @RequestBody UserUpdateViewHistoryRequest request, @RequestHeader("Authorization") String tokenHeader) {
         Long userId = UserHolder.getId();
-        Long storeId = request.getStoreId();
-        LocalDateTime viewTime = request.getViewTime();
-        boolean success = userService.updateViewHistory(userId, storeId,  viewTime);
-        return success ? ResponseBuilder.ok() : ResponseBuilder.fail("添加失败");
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            Long storeId = request.getStoreId();
+            
+            log.info("用户更新浏览历史: userId={}, storeId={}", userId, storeId);
+            
+            // 通过网关API更新用户浏览历史
+            boolean success = gatewayApiClient.updateUserViewHistory(userId, storeId, token);
+            
+            if (success) {
+                log.info("成功更新用户浏览历史: userId={}, storeId={}", userId, storeId);
+                return ResponseBuilder.ok("浏览历史更新成功");
+            } else {
+                log.warn("更新用户浏览历史失败: userId={}, storeId={}", userId, storeId);
+                return ResponseBuilder.fail("添加失败");
+            }
+            
+        } catch (Exception e) {
+            log.error("更新浏览历史失败", e);
+            return ResponseBuilder.fail("更新浏览历史失败: " + e.getMessage());
+        }
     }
 
     /**
-     * 获取浏览历史接口
+     * 获取浏览历史接口（GET方式）
+     * 通过网关API调用浏览历史服务
      * 
-     * @param request 获取浏览历史请求对象
+     * @param tokenHeader 请求头中的Authorization token
      * @return 浏览历史响应
      */
-    @PostMapping("/viewHistory")
-    public CommonResponse getViewHistory(@Valid @RequestBody UserGetViewHistoryRequest request) {
+    @GetMapping("/getViewHistory")
+    public CommonResponse getViewHistory(@RequestHeader("Authorization") String tokenHeader) {
         Long userId = UserHolder.getId();
-        Integer page = request.getPage();
-        Integer pageSize = request.getPageSize();
-        List<UserViewHistoryResponse> response = userService.getViewHistory(userId, page, pageSize);
-        return ResponseBuilder.ok(Map.of("stores", response));
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            
+            log.info("获取用户浏览历史: userId={}", userId);
+            
+            // 通过网关API获取用户浏览历史 - 添加分页参数
+            List<Map<String, Object>> viewHistory = gatewayApiClient.getUserViewHistory(userId, 1, 10, token);
+            
+            if (viewHistory != null) {
+                log.info("成功获取用户浏览历史: userId={}, count={}", userId, viewHistory.size());
+                return ResponseBuilder.ok(viewHistory);
+            } else {
+                log.warn("获取用户浏览历史失败: userId={}", userId);
+                return ResponseBuilder.fail("获取浏览历史失败");
+            }
+            
+        } catch (Exception e) {
+            log.error("获取浏览历史失败", e);
+            return ResponseBuilder.fail("获取浏览历史失败: " + e.getMessage());
+        }
     }
 }

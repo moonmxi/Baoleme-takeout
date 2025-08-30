@@ -1,25 +1,19 @@
 /**
  * 用户业务服务接口
  * 定义用户相关的业务操作方法
+ * 重构后仅包含用户自身数据的操作，跨数据库操作移至Controller层
  * 
  * @author Baoleme Team
- * @version 1.0
+ * @version 2.0
  * @since 2025-01-25
  */
 package org.demo.userservice.service;
 
-import org.demo.userservice.dto.response.user.*;
 import org.demo.userservice.pojo.User;
-import org.demo.userservice.dto.request.user.UserReviewRequest;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 用户业务接口
- * 说明：此接口不涉及任何认证上下文，完全以 userId 和 user 对象为参数处理业务。
+ * 说明：此接口仅处理用户自身数据，不涉及跨数据库操作
  */
 public interface UserService {
 
@@ -82,7 +76,7 @@ public interface UserService {
     boolean cancelAccount(Long userId);
 
     /**
-     * 收藏店铺
+     * 收藏店铺（仅操作用户数据库中的收藏表）
      * 
      * @param userId 用户ID
      * @param storeId 店铺ID
@@ -91,71 +85,11 @@ public interface UserService {
     boolean favoriteStore(Long userId, Long storeId);
 
     /**
-     * 获取用户收藏的店铺
-     * 
-     * @param userId 用户ID
-     * @param type 店铺类型
-     * @param distance 距离
-     * @param wishPrice 期望价格
-     * @param startRating 最低评分
-     * @param endRating 最高评分
-     * @param page 页码
-     * @param pageSize 每页数量
-     * @return 收藏店铺列表
-     */
-    List<UserFavoriteResponse> getFavoriteStores(Long userId, String type, BigDecimal distance, BigDecimal wishPrice, BigDecimal startRating, BigDecimal endRating, Integer page, Integer pageSize);
-
-    /**
-     * 删除收藏
+     * 删除收藏（仅操作用户数据库中的收藏表）
      * 
      * @param userId 用户ID
      * @param storeId 店铺ID
      * @return 是否删除成功
      */
     boolean deleteFavorite(Long userId, Long storeId);
-
-
-
-    /**
-     * 全局搜索店铺
-     * 
-     * @param keyword 关键词
-     * @param distance 距离
-     * @param wishPrice 期望价格
-     * @param startRating 最低评分
-     * @param endRating 最高评分
-     * @param page 页码
-     * @param pageSize 每页数量
-     * @return 搜索结果
-     */
-    List<UserSearchResponse> searchStores(String keyword, BigDecimal distance, BigDecimal wishPrice, BigDecimal startRating, BigDecimal endRating, Integer page, Integer pageSize);
-
-    /**
-     * 提交评价
-     * 
-     * @param userId 用户ID
-     * @param request 评价请求
-     * @return 评价响应
-     */
-    UserReviewResponse submitReview(Long userId, UserReviewRequest request);
-
-    /**
-     * 更新浏览历史
-     * 
-     * @param userId 用户ID
-     * @param storeId 店铺ID
-     * @param viewTime 浏览时间
-     * @return 是否更新成功
-     */
-    boolean updateViewHistory(Long userId, Long storeId, LocalDateTime viewTime);
-
-    /**
-     * 获取浏览历史
-     * 
-     * @param userId 用户ID
-     * @param page 页码
-     * @param pageSize 每页数量
-     * @return 浏览历史列表
-     */
-    List<UserViewHistoryResponse> getViewHistory(Long userId, Integer page, Integer pageSize);
 }
