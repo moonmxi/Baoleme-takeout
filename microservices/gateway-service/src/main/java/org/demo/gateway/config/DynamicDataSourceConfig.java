@@ -41,7 +41,7 @@ public class DynamicDataSourceConfig {
     /**
      * 默认数据源名称
      */
-    @Value("${gateway.table-mapping.default-datasource:gateway}")
+    @Value("${gateway.table-mapping.default-datasource:common}")
     private String defaultDataSource;
     
     /**
@@ -67,29 +67,29 @@ public class DynamicDataSourceConfig {
         
         tableMappingConfig.put("admin", "admin");
         
-        tableMappingConfig.put("order", "gateway");
-        tableMappingConfig.put("order_item", "gateway");
-        tableMappingConfig.put("review", "gateway");
-        tableMappingConfig.put("cart", "gateway");
-        tableMappingConfig.put("coupon", "gateway");
-        tableMappingConfig.put("user_coupon", "gateway");
-        tableMappingConfig.put("message", "gateway");
-        tableMappingConfig.put("sync_log", "gateway");
-        tableMappingConfig.put("message_log", "gateway");
+        tableMappingConfig.put("order", "common");
+        tableMappingConfig.put("order_item", "common");
+        tableMappingConfig.put("review", "common");
+        tableMappingConfig.put("cart", "common");
+        tableMappingConfig.put("coupon", "common");
+        tableMappingConfig.put("user_coupon", "common");
+        tableMappingConfig.put("message", "common");
+        tableMappingConfig.put("sync_log", "common");
+        tableMappingConfig.put("message_log", "common");
         
         log.info("表映射配置初始化完成，共 {} 个映射", tableMappingConfig.size());
     }
 
     /**
-     * 网关数据库数据源（主数据源）
+     * 通用数据库数据源（主数据源）
      * 
-     * @return DataSource 网关数据库连接
+     * @return DataSource 通用数据库连接
      */
-    @Bean(name = "gatewayDataSource")
+    @Bean(name = "commonDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.primary")
-    public DataSource gatewayDataSource() {
+    public DataSource commonDataSource() {
         HikariDataSource dataSource = DataSourceBuilder.create().type(HikariDataSource.class).build();
-        log.info("网关数据库数据源配置完成");
+        log.info("通用数据库数据源配置完成");
         return dataSource;
     }
 
@@ -159,7 +159,7 @@ public class DynamicDataSourceConfig {
     @Bean(name = "dynamicDataSource")
     @Primary
     public DynamicDataSource dynamicDataSource(
-            DataSource gatewayDataSource,
+            DataSource commonDataSource,
             DataSource userDataSource,
             DataSource merchantDataSource,
             DataSource riderDataSource,
@@ -169,7 +169,7 @@ public class DynamicDataSourceConfig {
         initTableMappingConfig();
         
         Map<Object, Object> targetDataSources = new HashMap<>();
-        targetDataSources.put("gateway", gatewayDataSource);
+        targetDataSources.put("common", commonDataSource);
         targetDataSources.put("user", userDataSource);
         targetDataSources.put("merchant", merchantDataSource);
         targetDataSources.put("rider", riderDataSource);
@@ -177,7 +177,7 @@ public class DynamicDataSourceConfig {
         
         DynamicDataSource dynamicDataSource = new DynamicDataSource();
         dynamicDataSource.setTargetDataSources(targetDataSources);
-        dynamicDataSource.setDefaultTargetDataSource(gatewayDataSource);
+        dynamicDataSource.setDefaultTargetDataSource(commonDataSource);
         dynamicDataSource.setTableMappingConfig(tableMappingConfig);
         dynamicDataSource.setDefaultDataSource(defaultDataSource);
         
@@ -205,7 +205,7 @@ public class DynamicDataSourceConfig {
         /**
          * 默认数据源
          */
-        private String defaultDataSource = "gateway";
+        private String defaultDataSource = "common";
         
         /**
          * 设置表映射配置
