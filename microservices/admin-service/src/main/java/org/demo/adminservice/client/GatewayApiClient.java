@@ -56,7 +56,7 @@ public class GatewayApiClient {
             // 构建查询条件
             Map<String, Object> conditions = new HashMap<>();
             if (keyword != null && !keyword.trim().isEmpty()) {
-                conditions.put("username", keyword);
+                conditions.put("username_like", keyword);
             }
             if (gender != null && !gender.trim().isEmpty()) {
                 conditions.put("gender", gender);
@@ -112,7 +112,7 @@ public class GatewayApiClient {
             // 构建查询条件
             Map<String, Object> conditions = new HashMap<>();
             if (keyword != null && !keyword.trim().isEmpty()) {
-                conditions.put("username", keyword);
+                conditions.put("username_like", keyword);
             }
             if (startId != null) {
                 conditions.put("id_gte", startId);
@@ -171,14 +171,52 @@ public class GatewayApiClient {
      */
     public List<Map<String, Object>> getMerchantList(int page, int pageSize, String keyword, 
                                                       Long startId, Long endId, String token) {
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("page", page);
-        requestBody.put("pageSize", pageSize);
-        if (keyword != null) requestBody.put("keyword", keyword);
-        if (startId != null) requestBody.put("startId", startId);
-        if (endId != null) requestBody.put("endId", endId);
-
-        return callGatewayApi("/database/query", requestBody, token, "merchant");
+        try {
+            log.info("调用网关API获取商家列表: page={}, pageSize={}", page, pageSize);
+            
+            // 构建查询条件
+            Map<String, Object> conditions = new HashMap<>();
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                conditions.put("username_like", keyword);
+            }
+            if (startId != null) {
+                conditions.put("id_gte", startId);
+            }
+            if (endId != null) {
+                conditions.put("id_lte", endId);
+            }
+            
+            Map<String, Object> requestBody = new HashMap<>();
+            if (!conditions.isEmpty()) {
+                requestBody.put("condition", conditions);
+            }
+            
+            String url = gatewayBaseUrl + "/api/database/merchant/page?page=" + page + "&pageSize=" + pageSize;
+            
+            Map<String, Object> response = webClient.post()
+                    .uri(url)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .timeout(Duration.ofSeconds(requestTimeout))
+                    .block();
+            
+            if (response != null && Boolean.TRUE.equals(response.get("success"))) {
+                Map<String, Object> data = (Map<String, Object>) response.get("data");
+                if (data != null) {
+                    return (List<Map<String, Object>>) data.get("records");
+                }
+            }
+            
+            log.warn("网关API返回异常响应: {}", response);
+            return new ArrayList<>();
+            
+        } catch (Exception e) {
+            log.error("调用网关API获取商家列表失败", e);
+            throw new RuntimeException("网关API调用异常: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -192,7 +230,7 @@ public class GatewayApiClient {
             // 构建查询条件
             Map<String, Object> conditions = new HashMap<>();
             if (keyword != null && !keyword.trim().isEmpty()) {
-                conditions.put("name", keyword);
+                conditions.put("name_like", keyword);
             }
             if (merchantId != null) {
                 conditions.put("merchant_id", merchantId);
@@ -238,12 +276,46 @@ public class GatewayApiClient {
      * 根据店铺ID获取商品列表
      */
     public List<Map<String, Object>> getProductList(Long storeId, int page, int pageSize, String token) {
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("storeId", storeId);
-        requestBody.put("page", page);
-        requestBody.put("pageSize", pageSize);
-
-        return callGatewayApi("/database/query", requestBody, token, "product");
+        try {
+            log.info("调用网关API获取商品列表: storeId={}, page={}, pageSize={}", storeId, page, pageSize);
+            
+            // 构建查询条件
+            Map<String, Object> conditions = new HashMap<>();
+            if (storeId != null) {
+                conditions.put("store_id", storeId);
+            }
+            
+            Map<String, Object> requestBody = new HashMap<>();
+            if (!conditions.isEmpty()) {
+                requestBody.put("condition", conditions);
+            }
+            
+            String url = gatewayBaseUrl + "/api/database/product/page?page=" + page + "&pageSize=" + pageSize;
+            
+            Map<String, Object> response = webClient.post()
+                    .uri(url)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .timeout(Duration.ofSeconds(requestTimeout))
+                    .block();
+            
+            if (response != null && Boolean.TRUE.equals(response.get("success"))) {
+                Map<String, Object> data = (Map<String, Object>) response.get("data");
+                if (data != null) {
+                    return (List<Map<String, Object>>) data.get("records");
+                }
+            }
+            
+            log.warn("网关API返回异常响应: {}", response);
+            return new ArrayList<>();
+            
+        } catch (Exception e) {
+            log.error("调用网关API获取商品列表失败", e);
+            throw new RuntimeException("网关API调用异常: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -251,17 +323,61 @@ public class GatewayApiClient {
      */
     public List<Map<String, Object>> getOrderList(Long userId, Long storeId, Long riderId, Integer status,
                                                    LocalDateTime createdAt, LocalDateTime endedAt, int page, int pageSize, String token) {
-        Map<String, Object> requestBody = new HashMap<>();
-        if (userId != null) requestBody.put("userId", userId);
-        if (storeId != null) requestBody.put("storeId", storeId);
-        if (riderId != null) requestBody.put("riderId", riderId);
-        if (status != null) requestBody.put("status", status);
-        if (createdAt != null) requestBody.put("createdAt", createdAt.toString());
-        if (endedAt != null) requestBody.put("endedAt", endedAt.toString());
-        requestBody.put("page", page);
-        requestBody.put("pageSize", pageSize);
-
-        return callGatewayApi("/database/query", requestBody, token, "order");
+        try {
+            log.info("调用网关API获取订单列表: page={}, pageSize={}", page, pageSize);
+            
+            // 构建查询条件
+            Map<String, Object> conditions = new HashMap<>();
+            if (userId != null) {
+                conditions.put("user_id", userId);
+            }
+            if (storeId != null) {
+                conditions.put("store_id", storeId);
+            }
+            if (riderId != null) {
+                conditions.put("rider_id", riderId);
+            }
+            if (status != null) {
+                conditions.put("status", status);
+            }
+            if (createdAt != null) {
+                conditions.put("created_at_gte", createdAt.toString());
+            }
+            if (endedAt != null) {
+                conditions.put("created_at_lte", endedAt.toString());
+            }
+            
+            Map<String, Object> requestBody = new HashMap<>();
+            if (!conditions.isEmpty()) {
+                requestBody.put("condition", conditions);
+            }
+            
+            String url = gatewayBaseUrl + "/api/database/order/page?page=" + page + "&pageSize=" + pageSize;
+            
+            Map<String, Object> response = webClient.post()
+                    .uri(url)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .timeout(Duration.ofSeconds(requestTimeout))
+                    .block();
+            
+            if (response != null && Boolean.TRUE.equals(response.get("success"))) {
+                Map<String, Object> data = (Map<String, Object>) response.get("data");
+                if (data != null) {
+                    return (List<Map<String, Object>>) data.get("records");
+                }
+            }
+            
+            log.warn("网关API返回异常响应: {}", response);
+            return new ArrayList<>();
+            
+        } catch (Exception e) {
+            log.error("调用网关API获取订单列表失败", e);
+            throw new RuntimeException("网关API调用异常: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -269,18 +385,64 @@ public class GatewayApiClient {
      */
     public List<Map<String, Object>> getReviewList(Long userId, Long storeId, Long productId, LocalDateTime startTime,
                                                     LocalDateTime endTime, int page, int pageSize, Integer startRating, Integer endRating, String token) {
-        Map<String, Object> requestBody = new HashMap<>();
-        if (userId != null) requestBody.put("userId", userId);
-        if (storeId != null) requestBody.put("storeId", storeId);
-        if (productId != null) requestBody.put("productId", productId);
-        if (startTime != null) requestBody.put("startTime", startTime.toString());
-        if (endTime != null) requestBody.put("endTime", endTime.toString());
-        if (startRating != null) requestBody.put("startRating", startRating);
-        if (endRating != null) requestBody.put("endRating", endRating);
-        requestBody.put("page", page);
-        requestBody.put("pageSize", pageSize);
-
-        return callGatewayApi("/database/query", requestBody, token, "review");
+        try {
+            log.info("调用网关API获取评论列表: page={}, pageSize={}", page, pageSize);
+            
+            // 构建查询条件
+            Map<String, Object> conditions = new HashMap<>();
+            if (userId != null) {
+                conditions.put("user_id", userId);
+            }
+            if (storeId != null) {
+                conditions.put("store_id", storeId);
+            }
+            if (productId != null) {
+                conditions.put("product_id", productId);
+            }
+            if (startTime != null) {
+                conditions.put("created_at_gte", startTime.toString());
+            }
+            if (endTime != null) {
+                conditions.put("created_at_lte", endTime.toString());
+            }
+            if (startRating != null) {
+                conditions.put("rating_gte", startRating);
+            }
+            if (endRating != null) {
+                conditions.put("rating_lte", endRating);
+            }
+            
+            Map<String, Object> requestBody = new HashMap<>();
+            if (!conditions.isEmpty()) {
+                requestBody.put("condition", conditions);
+            }
+            
+            String url = gatewayBaseUrl + "/api/database/review/page?page=" + page + "&pageSize=" + pageSize;
+            
+            Map<String, Object> response = webClient.post()
+                    .uri(url)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .timeout(Duration.ofSeconds(requestTimeout))
+                    .block();
+            
+            if (response != null && Boolean.TRUE.equals(response.get("success"))) {
+                Map<String, Object> data = (Map<String, Object>) response.get("data");
+                if (data != null) {
+                    return (List<Map<String, Object>>) data.get("records");
+                }
+            }
+            
+            log.warn("网关API返回异常响应: {}", response);
+            return new ArrayList<>();
+            
+        } catch (Exception e) {
+            log.error("调用网关API获取评论列表失败", e);
+            throw new RuntimeException("网关API调用异常: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -384,15 +546,110 @@ public class GatewayApiClient {
      * 删除商品
      */
     public boolean deleteProduct(String productName, String storeName, String token) {
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("productName", productName);
-        requestBody.put("storeName", storeName);
-
         try {
-            callGatewayApi("/database/delete", requestBody, token, "product");
-            return true;
+            log.info("开始删除商品: {} from {}", productName, storeName);
+            
+            // 第一步：根据商品名和店铺名查找商品
+            Map<String, Object> conditions = new HashMap<>();
+            conditions.put("name", productName);
+            
+            // 先查找店铺ID
+            Map<String, Object> storeConditions = new HashMap<>();
+            storeConditions.put("name", storeName);
+            
+            Map<String, Object> storeRequestBody = new HashMap<>();
+            storeRequestBody.put("condition", storeConditions);
+            
+            String storeUrl = gatewayBaseUrl + "/api/database/store/select";
+            log.debug("查找店铺URL: {}, 请求体: {}", storeUrl, storeRequestBody);
+            
+            Map<String, Object> storeResponse = webClient.post()
+                    .uri(storeUrl)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .bodyValue(storeRequestBody)
+                    .retrieve()
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .timeout(Duration.ofSeconds(requestTimeout))
+                    .block();
+            
+            log.debug("店铺查询响应: {}", storeResponse);
+            
+            if (storeResponse == null || !Boolean.TRUE.equals(storeResponse.get("success"))) {
+                log.warn("未找到店铺: {}, 响应: {}", storeName, storeResponse);
+                return false;
+            }
+            
+            Map<String, Object> storeData = (Map<String, Object>) storeResponse.get("data");
+            List<Map<String, Object>> stores = (List<Map<String, Object>>) storeData.get("records");
+            if (stores == null || stores.isEmpty()) {
+                log.warn("未找到店铺: {}, 店铺列表为空", storeName);
+                return false;
+            }
+            
+            Long storeId = ((Number) stores.get(0).get("id")).longValue();
+            log.debug("找到店铺ID: {}", storeId);
+            
+            // 第二步：根据商品名和店铺ID查找商品
+            conditions.put("store_id", storeId);
+            
+            Map<String, Object> productRequestBody = new HashMap<>();
+            productRequestBody.put("condition", conditions);
+            
+            String productUrl = gatewayBaseUrl + "/api/database/product/select";
+            log.debug("查找商品URL: {}, 请求体: {}", productUrl, productRequestBody);
+            
+            Map<String, Object> productResponse = webClient.post()
+                    .uri(productUrl)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .bodyValue(productRequestBody)
+                    .retrieve()
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .timeout(Duration.ofSeconds(requestTimeout))
+                    .block();
+            
+            log.debug("商品查询响应: {}", productResponse);
+            
+            if (productResponse == null || !Boolean.TRUE.equals(productResponse.get("success"))) {
+                log.warn("未找到商品: {} in {}, 响应: {}", productName, storeName, productResponse);
+                return false;
+            }
+            
+            Map<String, Object> productData = (Map<String, Object>) productResponse.get("data");
+            List<Map<String, Object>> products = (List<Map<String, Object>>) productData.get("records");
+            if (products == null || products.isEmpty()) {
+                log.warn("未找到商品: {} in {}, 商品列表为空", productName, storeName);
+                return false;
+            }
+            
+            Long productId = ((Number) products.get(0).get("id")).longValue();
+            log.debug("找到商品ID: {}", productId);
+            
+            // 第三步：根据商品ID删除商品
+            String deleteUrl = gatewayBaseUrl + "/api/database/product/" + productId;
+            log.debug("删除商品URL: {}", deleteUrl);
+            
+            Map<String, Object> deleteResponse = webClient.delete()
+                    .uri(deleteUrl)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .retrieve()
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .timeout(Duration.ofSeconds(requestTimeout))
+                    .block();
+            
+            log.debug("删除响应: {}", deleteResponse);
+            
+            if (deleteResponse != null && Boolean.TRUE.equals(deleteResponse.get("success"))) {
+                log.info("成功删除商品: {} from {}, ID: {}", productName, storeName, productId);
+                return true;
+            } else {
+                log.warn("删除商品失败: {}", deleteResponse);
+                return false;
+            }
+            
         } catch (Exception e) {
-            log.error("删除商品失败: {} from {}", productName, storeName, e);
+            log.error("删除商品异常: {} from {}", productName, storeName, e);
             return false;
         }
     }

@@ -1,30 +1,86 @@
 package org.demo.adminservice.dto.request.admin;
 
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-
-import java.time.LocalDateTime;
-
 /**
  * 管理员订单分页查询请求
+ * 简化版本，避免Jackson反序列化问题
  */
-@Data
 public class AdminOrderQueryRequest {
 
-    @NotNull
-    @Min(1)
     private Integer page;
-
-    @NotNull
-    @Min(1)
     private Integer pageSize;
-
     private Long userId;
     private Long storeId;
     private Long riderId;
     private Integer status;
-
-    private LocalDateTime createdAt; // 示例格式：2025-05-18
-    private LocalDateTime endedAt;   // 示例格式：2025-05-20
+    private String createdAt; // 改为String类型避免LocalDateTime解析问题
+    private String endedAt;   // 改为String类型避免LocalDateTime解析问题
+    
+    // 无参构造函数
+    public AdminOrderQueryRequest() {
+    }
+    
+    // Getter和Setter方法
+    public Integer getPage() {
+        return page != null ? page : 1;
+    }
+    
+    public void setPage(Integer page) {
+        this.page = page;
+    }
+    
+    public Integer getPageSize() {
+        return pageSize != null ? pageSize : 10;
+    }
+    
+    public void setPageSize(Integer pageSize) {
+        this.pageSize = pageSize;
+    }
+    
+    public Long getUserId() {
+        return userId;
+    }
+    
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+    
+    public Long getStoreId() {
+        return storeId;
+    }
+    
+    public void setStoreId(Long storeId) {
+        this.storeId = storeId;
+    }
+    
+    public Long getRiderId() {
+        return riderId;
+    }
+    
+    public void setRiderId(Long riderId) {
+        this.riderId = riderId;
+    }
+    
+    public Integer getStatus() {
+        return status;
+    }
+    
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
+    
+    public String getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(String createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    public String getEndedAt() {
+        return endedAt;
+    }
+    
+    public void setEndedAt(String endedAt) {
+        this.endedAt = endedAt;
+    }
 }

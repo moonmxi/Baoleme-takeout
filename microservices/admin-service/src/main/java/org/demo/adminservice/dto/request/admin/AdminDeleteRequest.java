@@ -1,5 +1,6 @@
 package org.demo.adminservice.dto.request.admin;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 /**
@@ -8,13 +9,18 @@ import lombok.Data;
 @Data
 public class AdminDeleteRequest {
 
+    @JsonProperty("user_name")
     private String userName;
 
+    @JsonProperty("rider_name")
     private String riderName;
 
+    @JsonProperty("merchant_name")
     private String merchantName;
 
+    @JsonProperty("store_name")
     private String storeName;
 
+    @JsonProperty("product_name")
     private String productName;
 }
