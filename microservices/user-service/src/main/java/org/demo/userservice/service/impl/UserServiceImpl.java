@@ -1,28 +1,25 @@
 /**
  * 用户业务服务实现类
  * 实现用户相关的业务逻辑
+ * 重构后仅包含用户自身数据的操作，跨数据库操作移至Controller层
  * 
  * @author Baoleme Team
- * @version 1.0
+ * @version 2.0
  * @since 2025-01-25
  */
 package org.demo.userservice.service.impl;
 
-import org.demo.userservice.dto.response.user.*;
+import org.demo.userservice.mapper.UserMapper;
 import org.demo.userservice.pojo.User;
 import org.demo.userservice.service.UserService;
-import org.demo.userservice.mapper.UserMapper;
-import org.demo.userservice.dto.request.user.UserReviewRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.ArrayList;
 
 /**
  * 用户业务服务实现类
+ * 重构后仅处理用户自身数据，不涉及跨数据库操作
  */
 @Service
 public class UserServiceImpl implements UserService {
@@ -32,6 +29,8 @@ public class UserServiceImpl implements UserService {
      */
     @Autowired
     private UserMapper userMapper;
+
+
 
     /**
      * 用户注册
@@ -194,108 +193,13 @@ public class UserServiceImpl implements UserService {
         }
         return userMapper.insertFavorite(userId, storeId) > 0;
     }
-
-    /**
-     * 获取用户收藏的店铺
-     */
-    @Override
-    public List<UserFavoriteResponse> getFavoriteStores(Long userId, String type, BigDecimal distance, BigDecimal wishPrice, BigDecimal startRating, BigDecimal endRating, Integer page, Integer pageSize) {
-        try {
-            int offset = (page - 1) * pageSize;
-            return userMapper.getFavoriteStores(userId, type, distance, wishPrice, startRating, endRating, page, pageSize, offset);
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
-    }
-
     /**
      * 删除收藏
      */
     @Override
     public boolean deleteFavorite(Long userId, Long storeId) {
-        try {
-            return userMapper.deleteFavorite(userId, storeId) > 0;
-        } catch (Exception e) {
-            return false;
-        }
+        return userMapper.deleteFavorite(userId, storeId) > 0;
     }
 
 
-
-    /**
-     * 全局搜索店铺
-     */
-    @Override
-    public List<UserSearchResponse> searchStores(String keyword, BigDecimal distance, BigDecimal wishPrice, BigDecimal startRating, BigDecimal endRating, Integer page, Integer pageSize) {
-        try {
-            int offset = (page - 1) * pageSize;
-            return userMapper.searchStores(keyword, distance, wishPrice, startRating, endRating, page, pageSize, offset);
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
-    }
-
-    /**
-     * 提交评价
-     */
-    @Override
-    public UserReviewResponse submitReview(Long userId, UserReviewRequest request) {
-        try {
-            // 获取图片，如果request没有getImage方法则使用null
-            String image = null;
-            try {
-                // 尝试通过反射获取image字段，如果不存在则使用null
-                java.lang.reflect.Field imageField = request.getClass().getDeclaredField("image");
-                imageField.setAccessible(true);
-                image = (String) imageField.get(request);
-            } catch (Exception ignored) {
-                // 如果没有image字段，使用null
-            }
-            
-            int result = userMapper.insertReview(userId, request.getStoreId(), request.getProductId(), 
-                request.getRating(), request.getComment(), image);
-            
-            UserReviewResponse response = new UserReviewResponse();
-            response.setComment(request.getComment());
-            response.setRating(request.getRating());
-            // 设置商品名称和店铺名称为空，实际应该从数据库查询
-            response.setProductName("");
-            response.setStoreName("");
-            response.setImages(image != null ? java.util.List.of(image) : java.util.List.of());
-            return response;
-        } catch (Exception e) {
-            UserReviewResponse response = new UserReviewResponse();
-            response.setComment("评价提交失败：" + e.getMessage());
-            response.setRating(0);
-            response.setProductName("");
-            response.setStoreName("");
-            response.setImages(java.util.List.of());
-            return response;
-        }
-    }
-
-    /**
-     * 更新浏览历史
-     */
-    @Override
-    public boolean updateViewHistory(Long userId, Long storeId, LocalDateTime viewTime) {
-        try {
-            return userMapper.addViewHistory(userId, storeId) > 0;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    /**
-     * 获取浏览历史
-     */
-    @Override
-    public List<UserViewHistoryResponse> getViewHistory(Long userId, Integer page, Integer pageSize) {
-        try {
-            int offset = (page - 1) * pageSize;
-            return userMapper.getViewHistory(userId, page, pageSize, offset);
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
-    }
 }
