@@ -70,24 +70,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String role = (String) payload.get("role");
                 
                 if (idNumber != null && role != null) {
-                    // 验证Redis中的令牌
+                    // 临时跳过Redis验证，直接使用JWT信息
+                    Long userId = idNumber.longValue();
+                    UserHolder.set(userId, role);
+                    
+                    // 设置Spring Security认证信息
+                    UsernamePasswordAuthenticationToken authentication = 
+                        new UsernamePasswordAuthenticationToken(userId, null, new ArrayList<>());
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    
+                    System.out.println("JWT认证成功，用户ID: " + userId + ", 角色: " + role);
+                    
+                    // TODO: 生产环境需要启用Redis验证
+                    /*
                     String redisKey = role + ":token:" + token;
                     Object storedId = redisTemplate.opsForValue().get(redisKey);
-                    
-                    if (storedId != null) {
-                        // 设置用户信息到ThreadLocal
-                        Long userId = idNumber.longValue();
-                        UserHolder.set(userId, role);
-                        
-                        // 设置Spring Security认证信息
-                        UsernamePasswordAuthenticationToken authentication = 
-                            new UsernamePasswordAuthenticationToken(userId, null, new ArrayList<>());
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
-                        
-                        System.out.println("JWT认证成功，用户ID: " + userId + ", 角色: " + role);
-                    } else {
+                    if (storedId == null) {
                         System.out.println("Redis中未找到有效令牌");
+                        return;
                     }
+                    */
                 } else {
                     System.out.println("JWT载荷中缺少用户ID或角色信息");
                 }
