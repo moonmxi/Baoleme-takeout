@@ -71,13 +71,20 @@ public class DatabaseOperationServiceImpl implements DatabaseOperationService {
 
     /**
      * 根据条件查询记录列表
+     * 支持多种查询操作符：
+     * - 字段名: 等值查询
+     * - 字段名_gte: 大于等于
+     * - 字段名_lte: 小于等于
+     * - 字段名_gt: 大于
+     * - 字段名_lt: 小于
+     * - 字段名_like: 模糊查询（LIKE %value%）
      */
     @Override
     public List<Map<String, Object>> selectByConditions(String tableName, Map<String, Object> conditions) {
         try {
             DynamicDataSource.setDataSourceByTable(tableName);
             
-            StringBuilder sql = new StringBuilder("SELECT * FROM " + tableName);
+            StringBuilder sql = new StringBuilder("SELECT * FROM `" + tableName + "`");
             List<Object> params = new ArrayList<>();
             
             if (conditions != null && !conditions.isEmpty()) {
@@ -85,8 +92,40 @@ public class DatabaseOperationServiceImpl implements DatabaseOperationService {
                 List<String> whereClauses = new ArrayList<>();
                 
                 for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-                    whereClauses.add(entry.getKey() + " = ?");
-                    params.add(entry.getValue());
+                    String key = entry.getKey();
+                    Object value = entry.getValue();
+                    
+                    // 处理不同的查询操作符
+                    if (key.endsWith("_gte")) {
+                        // 大于等于
+                        String fieldName = key.substring(0, key.length() - 4);
+                        whereClauses.add(fieldName + " >= ?");
+                        params.add(value);
+                    } else if (key.endsWith("_lte")) {
+                        // 小于等于
+                        String fieldName = key.substring(0, key.length() - 4);
+                        whereClauses.add(fieldName + " <= ?");
+                        params.add(value);
+                    } else if (key.endsWith("_like")) {
+                        // 模糊查询
+                        String fieldName = key.substring(0, key.length() - 5);
+                        whereClauses.add(fieldName + " LIKE ?");
+                        params.add("%" + value + "%");
+                    } else if (key.endsWith("_gt")) {
+                        // 大于
+                        String fieldName = key.substring(0, key.length() - 3);
+                        whereClauses.add(fieldName + " > ?");
+                        params.add(value);
+                    } else if (key.endsWith("_lt")) {
+                        // 小于
+                        String fieldName = key.substring(0, key.length() - 3);
+                        whereClauses.add(fieldName + " < ?");
+                        params.add(value);
+                    } else {
+                        // 等值查询
+                        whereClauses.add(key + " = ?");
+                        params.add(value);
+                    }
                 }
                 
                 sql.append(String.join(" AND ", whereClauses));
@@ -105,13 +144,15 @@ public class DatabaseOperationServiceImpl implements DatabaseOperationService {
 
     /**
      * 分页查询记录列表
+     * 支持多种查询操作符（与selectByConditions保持一致）
+     * 包括模糊查询支持
      */
     @Override
     public List<Map<String, Object>> selectByPage(String tableName, Map<String, Object> conditions, int page, int pageSize) {
         try {
             DynamicDataSource.setDataSourceByTable(tableName);
             
-            StringBuilder sql = new StringBuilder("SELECT * FROM " + tableName);
+            StringBuilder sql = new StringBuilder("SELECT * FROM `" + tableName + "`");
             List<Object> params = new ArrayList<>();
             
             if (conditions != null && !conditions.isEmpty()) {
@@ -119,8 +160,40 @@ public class DatabaseOperationServiceImpl implements DatabaseOperationService {
                 List<String> whereClauses = new ArrayList<>();
                 
                 for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-                    whereClauses.add(entry.getKey() + " = ?");
-                    params.add(entry.getValue());
+                    String key = entry.getKey();
+                    Object value = entry.getValue();
+                    
+                    // 处理不同的查询操作符（与selectByConditions保持一致）
+                    if (key.endsWith("_gte")) {
+                        // 大于等于
+                        String fieldName = key.substring(0, key.length() - 4);
+                        whereClauses.add(fieldName + " >= ?");
+                        params.add(value);
+                    } else if (key.endsWith("_lte")) {
+                        // 小于等于
+                        String fieldName = key.substring(0, key.length() - 4);
+                        whereClauses.add(fieldName + " <= ?");
+                        params.add(value);
+                    } else if (key.endsWith("_like")) {
+                        // 模糊查询
+                        String fieldName = key.substring(0, key.length() - 5);
+                        whereClauses.add(fieldName + " LIKE ?");
+                        params.add("%" + value + "%");
+                    } else if (key.endsWith("_gt")) {
+                        // 大于
+                        String fieldName = key.substring(0, key.length() - 3);
+                        whereClauses.add(fieldName + " > ?");
+                        params.add(value);
+                    } else if (key.endsWith("_lt")) {
+                        // 小于
+                        String fieldName = key.substring(0, key.length() - 3);
+                        whereClauses.add(fieldName + " < ?");
+                        params.add(value);
+                    } else {
+                        // 等值查询
+                        whereClauses.add(key + " = ?");
+                        params.add(value);
+                    }
                 }
                 
                 sql.append(String.join(" AND ", whereClauses));
@@ -144,13 +217,14 @@ public class DatabaseOperationServiceImpl implements DatabaseOperationService {
 
     /**
      * 查询记录总数
+     * 支持多种查询操作符（与selectByConditions保持一致）
      */
     @Override
     public long countByConditions(String tableName, Map<String, Object> conditions) {
         try {
             DynamicDataSource.setDataSourceByTable(tableName);
             
-            StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM " + tableName);
+            StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM `" + tableName + "`");
             List<Object> params = new ArrayList<>();
             
             if (conditions != null && !conditions.isEmpty()) {
@@ -158,8 +232,40 @@ public class DatabaseOperationServiceImpl implements DatabaseOperationService {
                 List<String> whereClauses = new ArrayList<>();
                 
                 for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-                    whereClauses.add(entry.getKey() + " = ?");
-                    params.add(entry.getValue());
+                    String key = entry.getKey();
+                    Object value = entry.getValue();
+                    
+                    // 处理不同的查询操作符（与selectByConditions保持一致）
+                    if (key.endsWith("_gte")) {
+                        // 大于等于
+                        String fieldName = key.substring(0, key.length() - 4);
+                        whereClauses.add(fieldName + " >= ?");
+                        params.add(value);
+                    } else if (key.endsWith("_lte")) {
+                        // 小于等于
+                        String fieldName = key.substring(0, key.length() - 4);
+                        whereClauses.add(fieldName + " <= ?");
+                        params.add(value);
+                    } else if (key.endsWith("_like")) {
+                        // 模糊查询
+                        String fieldName = key.substring(0, key.length() - 5);
+                        whereClauses.add(fieldName + " LIKE ?");
+                        params.add("%" + value + "%");
+                    } else if (key.endsWith("_gt")) {
+                        // 大于
+                        String fieldName = key.substring(0, key.length() - 3);
+                        whereClauses.add(fieldName + " > ?");
+                        params.add(value);
+                    } else if (key.endsWith("_lt")) {
+                        // 小于
+                        String fieldName = key.substring(0, key.length() - 3);
+                        whereClauses.add(fieldName + " < ?");
+                        params.add(value);
+                    } else {
+                        // 等值查询
+                        whereClauses.add(key + " = ?");
+                        params.add(value);
+                    }
                 }
                 
                 sql.append(String.join(" AND ", whereClauses));
@@ -332,15 +438,18 @@ public class DatabaseOperationServiceImpl implements DatabaseOperationService {
      * 根据ID删除记录
      */
     @Override
-    @Transactional
     public int deleteById(String tableName, Long id) {
         try {
+            log.debug("开始删除操作: 表={}, ID={}", tableName, id);
             DynamicDataSource.setDataSourceByTable(tableName);
+            log.debug("已设置数据源: {}", DynamicDataSource.getCurrentDataSource());
             
-            String sql = "DELETE FROM " + tableName + " WHERE id = ?";
+            String sql = "DELETE FROM `" + tableName + "` WHERE id = ?";
             
             log.debug("执行删除SQL: {}, 参数: {}", sql, id);
-            return jdbcTemplate.update(sql, id);
+            int result = jdbcTemplate.update(sql, id);
+            log.debug("删除操作完成，影响行数: {}", result);
+            return result;
             
         } catch (DataAccessException e) {
             log.error("根据ID删除记录失败: 表={}, ID={}", tableName, id, e);

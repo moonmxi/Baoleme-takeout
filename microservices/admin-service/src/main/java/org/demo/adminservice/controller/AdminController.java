@@ -178,7 +178,8 @@ public class AdminController {
                 resp.setDescription((String) user.get("description"));
                 resp.setPhone((String) user.get("phone"));
                 resp.setAvatar((String) user.get("avatar"));
-                Object createdAt = user.get("createdAt");
+                // 使用数据库字段名（下划线格式）
+                Object createdAt = user.get("created_at");
                 if (createdAt != null) {
                     resp.setCreatedAt(LocalDateTime.parse(createdAt.toString()));
                 }
@@ -227,14 +228,15 @@ public class AdminController {
                 resp.setId(((Number) rider.get("id")).longValue());
                 resp.setUsername((String) rider.get("username"));
                 resp.setPhone((String) rider.get("phone"));
-                Object statusObj = rider.get("status");
+                // 使用数据库字段名（下划线格式）
+                Object statusObj = rider.get("order_status");
                 if (statusObj != null) resp.setStatus(((Number) statusObj).intValue());
-                Object dispatchModeObj = rider.get("dispatchMode");
+                Object dispatchModeObj = rider.get("dispatch_mode");
                 if (dispatchModeObj != null) resp.setDispatchMode(((Number) dispatchModeObj).intValue());
                 Object balanceObj = rider.get("balance");
                 if (balanceObj != null) resp.setBalance(((Number) balanceObj).longValue());
                 resp.setAvatar((String) rider.get("avatar"));
-                Object createdAt = rider.get("createdAt");
+                Object createdAt = rider.get("created_at");
                 if (createdAt != null) {
                     resp.setCreatedAt(LocalDateTime.parse(createdAt.toString()));
                 }
@@ -281,7 +283,8 @@ public class AdminController {
                 resp.setId(((Number) merchant.get("id")).longValue());
                 resp.setUsername((String) merchant.get("username"));
                 resp.setPhone((String) merchant.get("phone"));
-                Object createdAt = merchant.get("createdAt");
+                // 使用数据库字段名（下划线格式）
+                Object createdAt = merchant.get("created_at");
                 if (createdAt != null) {
                     resp.setCreatedAt(LocalDateTime.parse(createdAt.toString()));
                 }
@@ -464,15 +467,9 @@ public class AdminController {
         }
     }
 
-    /**
-     * 管理员分页查看订单
-     * 通过网关API调用网关微服务获取数据
-     * 
-     * @param request 订单查询请求对象
-     * @return CommonResponse 订单列表响应
-     */
+
     @PostMapping("/orderlist")
-    public CommonResponse getOrderList(@Valid @RequestBody AdminOrderQueryRequest request, @RequestHeader("Authorization") String tokenHeader) {
+    public CommonResponse getOrderList(@RequestBody Map<String, Object> requestMap, @RequestHeader("Authorization") String tokenHeader) {
         // 身份校验
         if (!"admin".equals(UserHolder.getRole())) {
             return ResponseBuilder.fail("无权限访问，仅管理员可操作");
@@ -481,39 +478,69 @@ public class AdminController {
         try {
             String token = tokenHeader.replace("Bearer ", "");
             
-            log.info("管理员查询订单列表: page={}, pageSize={}", request.getPage(), request.getPageSize());
+            // 从Map中提取参数
+            int page = requestMap.get("page") != null ? ((Number) requestMap.get("page")).intValue() : 1;
+            int pageSize = requestMap.get("pageSize") != null ? ((Number) requestMap.get("pageSize")).intValue() : 10;
+            
+            Long userId = requestMap.get("userId") != null ? ((Number) requestMap.get("userId")).longValue() : null;
+            Long storeId = requestMap.get("storeId") != null ? ((Number) requestMap.get("storeId")).longValue() : null;
+            Long riderId = requestMap.get("riderId") != null ? ((Number) requestMap.get("riderId")).longValue() : null;
+            Integer status = requestMap.get("status") != null ? ((Number) requestMap.get("status")).intValue() : null;
+            
+            // 处理日期时间字符串转换
+            LocalDateTime createdAt = null;
+            LocalDateTime endedAt = null;
+            if (requestMap.get("createdAt") != null) {
+                try {
+                    String createdAtStr = (String) requestMap.get("createdAt");
+                    createdAt = LocalDateTime.parse(createdAtStr.replace(" ", "T"));
+                } catch (Exception e) {
+                    log.warn("创建时间格式错误: {}", requestMap.get("createdAt"));
+                }
+            }
+            if (requestMap.get("endedAt") != null) {
+                try {
+                    String endedAtStr = (String) requestMap.get("endedAt");
+                    endedAt = LocalDateTime.parse(endedAtStr.replace(" ", "T"));
+                } catch (Exception e) {
+                    log.warn("结束时间格式错误: {}", requestMap.get("endedAt"));
+                }
+            }
+            
+            log.info("管理员查询订单列表: page={}, pageSize={}", page, pageSize);
             
             List<Map<String, Object>> orders = gatewayApiClient.getOrderList(
-                    request.getUserId(),
-                    request.getStoreId(),
-                    request.getRiderId(),
-                    request.getStatus(),
-                    request.getCreatedAt(),
-                    request.getEndedAt(),
-                    request.getPage(),
-                    request.getPageSize(),
+                    userId,
+                    storeId,
+                    riderId,
+                    status,
+                    createdAt,
+                    endedAt,
+                    page,
+                    pageSize,
                     token
             );
 
             List<AdminOrderQueryResponse> responses = orders.stream().map(order -> {
                 AdminOrderQueryResponse resp = new AdminOrderQueryResponse();
                 resp.setOrderId(((Number) order.get("id")).longValue());
-                Object userIdObj = order.get("userId");
+                // 使用数据库字段名（下划线格式）
+                Object userIdObj = order.get("user_id");
                 if (userIdObj != null) resp.setUserId(((Number) userIdObj).longValue());
-                Object storeIdObj = order.get("storeId");
+                Object storeIdObj = order.get("store_id");
                 if (storeIdObj != null) resp.setStoreId(((Number) storeIdObj).longValue());
-                Object riderIdObj = order.get("riderId");
+                Object riderIdObj = order.get("rider_id");
                 if (riderIdObj != null) resp.setRiderId(((Number) riderIdObj).longValue());
                 Object statusObj = order.get("status");
                 if (statusObj != null) resp.setStatus(((Number) statusObj).intValue());
-                Object totalPriceObj = order.get("totalPrice");
+                Object totalPriceObj = order.get("total_price");
                 if (totalPriceObj != null) resp.setTotalPrice(BigDecimal.valueOf(((Number) totalPriceObj).doubleValue()));
-                Object createdAt = order.get("createdAt");
-                if (createdAt != null) resp.setCreatedAt(LocalDateTime.parse(createdAt.toString()));
+                Object orderCreatedAt = order.get("created_at");
+                if (orderCreatedAt != null) resp.setCreatedAt(LocalDateTime.parse(orderCreatedAt.toString()));
                 Object deadline = order.get("deadline");
                 if (deadline != null) resp.setDeadline(LocalDateTime.parse(deadline.toString()));
-                Object endedAt = order.get("endedAt");
-                if (endedAt != null) resp.setEndedAt(LocalDateTime.parse(endedAt.toString()));
+                Object orderEndedAt = order.get("ended_at");
+                if (orderEndedAt != null) resp.setEndedAt(LocalDateTime.parse(orderEndedAt.toString()));
                 return resp;
             }).collect(Collectors.toList());
 
@@ -542,38 +569,48 @@ public class AdminController {
 
         try {
             String token = tokenHeader.replace("Bearer ", "");
-            int page = request.getPage();
-            int pageSize = request.getPageSize();
+            
+            // 设置默认值，与其他列表查询保持一致
+            int page = request.getPage() != null ? request.getPage() : 1;
+            int pageSize = request.getPageSize() != null ? request.getPageSize() : 10;
+            Long userId = request.getUserId();
+            Long storeId = request.getStoreId();
+            Long productId = request.getProductId();
+            LocalDateTime startTime = request.getStartTime();
+            LocalDateTime endTime = request.getEndTime();
+            Integer startRating = request.getStartRating();
+            Integer endRating = request.getEndRating();
             
             log.info("管理员查询评论列表: page={}, pageSize={}", page, pageSize);
 
             List<Map<String, Object>> reviews = gatewayApiClient.getReviewList(
-                    request.getUserId(),
-                    request.getStoreId(),
-                    request.getProductId(),
-                    request.getStartTime(),
-                    request.getEndTime(),
+                    userId,
+                    storeId,
+                    productId,
+                    startTime,
+                    endTime,
                     page,
                     pageSize,
-                    request.getStartRating(),
-                    request.getEndRating(),
+                    startRating,
+                    endRating,
                     token
             );
 
             List<AdminReviewQueryResponse> responses = reviews.stream().map(review -> {
                 AdminReviewQueryResponse resp = new AdminReviewQueryResponse();
                 resp.setId(((Number) review.get("id")).longValue());
-                Object userIdObj = review.get("userId");
+                // 使用数据库字段名（下划线格式）
+                Object userIdObj = review.get("user_id");
                 if (userIdObj != null) resp.setUserId(((Number) userIdObj).longValue());
-                Object storeIdObj = review.get("storeId");
+                Object storeIdObj = review.get("store_id");
                 if (storeIdObj != null) resp.setStoreId(((Number) storeIdObj).longValue());
-                Object productIdObj = review.get("productId");
+                Object productIdObj = review.get("product_id");
                 if (productIdObj != null) resp.setProductId(((Number) productIdObj).longValue());
                 Object ratingObj = review.get("rating");
                 if (ratingObj != null) resp.setRating(BigDecimal.valueOf(((Number) ratingObj).intValue()));
                 resp.setComment((String) review.get("comment"));
-                Object createdAt = review.get("createdAt");
-                if (createdAt != null) resp.setCreatedAt(LocalDateTime.parse(createdAt.toString()));
+                Object reviewCreatedAt = review.get("created_at");
+                if (reviewCreatedAt != null) resp.setCreatedAt(LocalDateTime.parse(reviewCreatedAt.toString()));
                 return resp;
             }).collect(Collectors.toList());
 
@@ -582,7 +619,7 @@ public class AdminController {
             
         } catch (Exception e) {
             log.error("获取评论列表失败", e);
-            return ResponseBuilder.fail("获取评论列表失败: " + e.getMessage());
+            return ResponseBuilder.fail("获取评论列表失败");
         }
     }
 

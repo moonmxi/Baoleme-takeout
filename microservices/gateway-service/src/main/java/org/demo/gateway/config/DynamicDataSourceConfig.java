@@ -236,11 +236,11 @@ public class DynamicDataSourceConfig {
         public static void setDataSourceByTable(String tableName) {
             if (tableName == null || tableName.trim().isEmpty()) {
                 log.warn("表名为空，使用默认数据源");
-                CONTEXT_HOLDER.set("gateway");
+                CONTEXT_HOLDER.set("common");
                 return;
             }
             
-            // 简化实现：直接根据表名前缀判断数据源
+            // 使用配置映射来确定数据源
             String dataSourceKey = determineDataSourceByTableName(tableName.toLowerCase());
             CONTEXT_HOLDER.set(dataSourceKey);
             log.debug("根据表名 {} 设置数据源: {}", tableName, dataSourceKey);
@@ -254,7 +254,7 @@ public class DynamicDataSourceConfig {
          */
         private static String determineDataSourceByTableName(String tableName) {
             // 用户相关表
-            if (tableName.equals("user") || tableName.equals("favorite") || tableName.equals("browse_history")) {
+            if (tableName.equals("user") || tableName.equals("favorite") || tableName.equals("browse_history") || tableName.equals("cart")) {
                 return "user";
             }
             // 商家相关表
@@ -269,8 +269,8 @@ public class DynamicDataSourceConfig {
             if (tableName.equals("admin")) {
                 return "admin";
             }
-            // 默认使用网关数据库
-            return "gateway";
+            // 默认使用common数据库（网关数据库）
+            return "common";
         }
         
         /**
