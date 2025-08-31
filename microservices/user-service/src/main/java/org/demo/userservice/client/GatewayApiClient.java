@@ -361,16 +361,22 @@ public class GatewayApiClient {
     /**
      * 根据关键词搜索店铺和商品
      */
-    public List<Map<String, Object>> searchStoreAndProduct(String keyword, String token) {
+    public List<Map<String, Object>> searchStore(int page, int pageSize, String keyword, String token) {
         try {
-            log.info("调用网关API搜索店铺和商品: keyword={}", keyword);
-            
+            log.info("调用网关API获取店铺列表: page={}, pageSize={}", page, pageSize);
+
+            // 构建查询条件
+            Map<String, Object> conditions = new HashMap<>();
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                conditions.put("name", keyword);
+            }
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("keyword", keyword);
-            requestBody.put("searchType", "store_and_product");
-            
-            String url = gatewayBaseUrl + "/api/database/search";
-            
+            if (!conditions.isEmpty()) {
+                requestBody.put("condition", conditions);
+            }
+
+            String url = gatewayBaseUrl + "/api/database/store/page?page=" + page + "&pageSize=" + pageSize;
+
             Map<String, Object> response = webClient.post()
                     .uri(url)
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -380,19 +386,19 @@ public class GatewayApiClient {
                     .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
                     .timeout(Duration.ofSeconds(requestTimeout))
                     .block();
-            
+
             if (response != null && Boolean.TRUE.equals(response.get("success"))) {
-                Object data = response.get("data");
-                if (data instanceof List) {
-                    return (List<Map<String, Object>>) data;
+                Map<String, Object> data = (Map<String, Object>) response.get("data");
+                if (data != null) {
+                    return (List<Map<String, Object>>) data.get("records");
                 }
             }
-            
+
             log.warn("网关API返回异常响应: {}", response);
             return new ArrayList<>();
-            
+
         } catch (Exception e) {
-            log.error("调用网关API搜索店铺和商品失败", e);
+            log.error("调用网关API获取店铺列表失败", e);
             throw new RuntimeException("网关API调用异常: " + e.getMessage(), e);
         }
     }

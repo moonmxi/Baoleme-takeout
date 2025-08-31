@@ -256,9 +256,12 @@ public class UserController {
         Long userId = UserHolder.getId();
         try {
             String token = tokenHeader.replace("Bearer ", "");
-            int page = request.getPage();
-            int pageSize = request.getPageSize();
-            
+            BigDecimal distance = request.getDistance();
+            BigDecimal wishPrice = request.getWishPrice();
+            BigDecimal startRating = request.getStartRating();
+            BigDecimal endRating = request.getEndRating();
+            Integer page = request.getPage();
+            Integer pageSize = request.getPageSize();
             log.info("用户获取收藏店铺列表: userId={}, page={}, pageSize={}", userId, page, pageSize);
             
             // 通过网关API获取用户收藏店铺列表
@@ -354,6 +357,13 @@ public class UserController {
     @PostMapping("/search")
     public CommonResponse searchStoreAndProduct(@Valid @RequestBody UserSearchRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String keyword = request.getKeyword();
+//        BigDecimal distance = request.getDistance();
+//        BigDecimal wishPrice = request.getWishPrice();
+//        BigDecimal startRating = request.getStartRating();
+//        BigDecimal endRating = request.getEndRating();
+        Integer page = request.getPage();
+        Integer pageSize = request.getPageSize();
+        log.info("用户搜索店铺和商品: keyword={}, page={}, pageSize={}", keyword, page, pageSize);
         if (keyword == null || keyword.trim().isEmpty()) {
             return ResponseBuilder.fail("关键词不能为空");
         }
@@ -362,14 +372,17 @@ public class UserController {
             String token = tokenHeader.replace("Bearer ", "");
             
             // 使用现有的searchStoreAndProduct方法
-            List<Map<String, Object>> searchResults = gatewayApiClient.searchStoreAndProduct(
-                keyword.trim(),
-                token
+            List<Map<String, Object>> searchResults = gatewayApiClient.searchStore(
+                    page,
+                    pageSize,
+                    keyword,
+                    token
+
             );
-            
+
             // 处理搜索结果
             List<UserSearchResponse> responses = new ArrayList<>();
-            
+
             if (searchResults != null && !searchResults.isEmpty()) {
                 responses = searchResults.stream().map(store -> {
                      UserSearchResponse response = new UserSearchResponse();
@@ -387,7 +400,7 @@ public class UserController {
                      return response;
                  }).collect(Collectors.toList());
             }
-            
+            log.info("成功获取搜索店铺列表，共{}条记录", responses.size());
             return ResponseBuilder.ok(Map.of("results", responses));
         } catch (Exception e) {
             return ResponseBuilder.fail("搜索失败: " + e.getMessage());
