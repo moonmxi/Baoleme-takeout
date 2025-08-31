@@ -49,6 +49,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // 允许健康检查接口公开访问
                 .requestMatchers("/actuator/**").permitAll()
+                // 临时允许评论接口公开访问用于测试
+                .requestMatchers("/store/reviews/**").permitAll()
                 // 其他所有请求都需要认证
                 .anyRequest().authenticated()
             )
