@@ -51,10 +51,34 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+# 网关服务配置
+gateway:
+  service:
+    base-url: http://localhost:8080
+    timeout: 30
+
+# WebClient配置
+webclient:
+  connect-timeout: 5000
+  read-timeout: 30
+  write-timeout: 30
+  max-connections: 100
+
+# 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
 # 日志配置
 logging:
   level:
     org.demo.userservice: debug
     org.springframework.security: debug
+    org.springframework.web.reactive.function.client: warn
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

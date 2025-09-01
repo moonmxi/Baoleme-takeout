@@ -1,13 +1,77 @@
-# 网关服务配置文件
-# 统一数据库操作网关服务，提供跨数据库的CRUD操作和数据同步功能
+# 订单服务配置文件
+# 配置订单服务的数据库连接、端口等信息
 
 server:
   port: 8080
 
 spring:
   application:
-    name: gateway-service
+    name: order-service
+  
+  # 数据库配置 - 订单服务独立数据库
+  datasource:
+    url: jdbc:mysql://localhost:3306/baoleme_gateway?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: wqy20050308
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+    # 用户数据库
+    user:
+      jdbc-url: jdbc:mysql://localhost:3306/baoleme_user?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      username: root
+      password: wqy20050308
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: UserHikariPool
+        maximum-pool-size: 10
+        minimum-idle: 3
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
 
+    # 商家数据库
+    merchant:
+      jdbc-url: jdbc:mysql://localhost:3306/baoleme_merchant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      username: root
+      password: wqy20050308
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: MerchantHikariPool
+        maximum-pool-size: 10
+        minimum-idle: 3
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+
+    # 骑手数据库
+    rider:
+      jdbc-url: jdbc:mysql://localhost:3306/baoleme_rider?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      username: root
+      password: wqy20050308
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: RiderHikariPool
+        maximum-pool-size: 10
+        minimum-idle: 3
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+
+    # 管理员数据库
+    admin:
+      jdbc-url: jdbc:mysql://localhost:3306/baoleme_admin?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      username: root
+      password: wqy20050308
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: AdminHikariPool
+        maximum-pool-size: 10
+        minimum-idle: 3
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+    
+  # Redis配置
   data:
     redis:
       host: localhost
@@ -19,81 +83,6 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
-          max-wait: -1ms
-      connect-timeout: 10000ms
-      command-timeout: 5000ms
-  
-  # 多数据源配置
-  datasource:
-    # 网关数据库（主数据源）
-    primary:
-      jdbc-url: jdbc:mysql://localhost:3306/baoleme_common?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-      username: root
-      password: wqy20050308
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      hikari:
-        pool-name: GatewayHikariPool
-        maximum-pool-size: 15
-        minimum-idle: 5
-        connection-timeout: 30000
-        idle-timeout: 600000
-        max-lifetime: 1800000
-    
-    # 用户数据库
-    user:
-      jdbc-url: jdbc:mysql://localhost:3306/baoleme_user?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-      username: root
-      password: 88159918
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      hikari:
-        pool-name: UserHikariPool
-        maximum-pool-size: 10
-        minimum-idle: 3
-        connection-timeout: 30000
-        idle-timeout: 600000
-        max-lifetime: 1800000
-    
-    # 商家数据库
-    merchant:
-      jdbc-url: jdbc:mysql://localhost:3306/baoleme_merchant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-      username: root
-      password: 88159918
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      hikari:
-        pool-name: MerchantHikariPool
-        maximum-pool-size: 10
-        minimum-idle: 3
-        connection-timeout: 30000
-        idle-timeout: 600000
-        max-lifetime: 1800000
-    
-    # 骑手数据库
-    rider:
-      jdbc-url: jdbc:mysql://localhost:3306/baoleme_rider?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-      username: root
-      password: 88159918
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      hikari:
-        pool-name: RiderHikariPool
-        maximum-pool-size: 10
-        minimum-idle: 3
-        connection-timeout: 30000
-        idle-timeout: 600000
-        max-lifetime: 1800000
-    
-    # 管理员数据库
-    admin:
-      jdbc-url: jdbc:mysql://localhost:3306/baoleme_admin?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-      username: root
-      password: 88159918
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      hikari:
-        pool-name: AdminHikariPool
-        maximum-pool-size: 10
-        minimum-idle: 3
-        connection-timeout: 30000
-        idle-timeout: 600000
-        max-lifetime: 1800000
 
 # MyBatis-Plus配置
 mybatis-plus:
@@ -111,81 +100,6 @@ mybatis-plus:
 logging:
   level:
     org.demo.gateway: debug
-    org.springframework.jdbc: debug
-    com.zaxxer.hikari: info
+    org.springframework.security: debug
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-
-# 监控配置
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: always
-
-# 网关数据库操作配置
-gateway:
-  database:
-    # 操作超时时间（毫秒）
-    timeout: 30000
-    # 批量操作大小
-    batch-size: 1000
-    # 是否启用事务
-    enable-transaction: true
-    # 连接池监控
-    pool-monitoring: true
-  
-  # 表映射配置 - 定义每个数据表对应的数据库
-  table-mapping:
-    # 用户服务相关表 -> baoleme_user 数据库
-    user: user
-    favorite: user
-    
-    # 商家服务相关表 -> baoleme_merchant 数据库
-    merchant: merchant
-    store: merchant
-    product: merchant
-    sales: merchant
-    
-    # 骑手服务相关表 -> baoleme_rider 数据库
-    rider: rider
-    
-    # 管理员服务相关表 -> baoleme_admin 数据库
-    admin: admin
-    
-    # 网关服务相关表 -> baoleme_common 数据库
-    # 订单相关
-    order: common
-    order_item: common
-    
-    # 评价相关
-    review: common
-    
-    # 购物车相关
-    cart: user
-    
-    # 优惠券相关
-    coupon: common
-    
-    # 消息相关
-    message: common
-    
-    # 数据同步相关
-    sync_log: common
-    message_log: common
-    
-    # 默认数据库配置
-    default-datasource: common
-    
-    # 数据库别名映射
-    datasource-aliases:
-      user-db: user
-      merchant-db: merchant
-      rider-db: rider
-      admin-db: admin
-      gateway-db: common
-      order-db: common
-      message-db: common
