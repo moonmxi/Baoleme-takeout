@@ -27,6 +27,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -256,9 +257,12 @@ public class UserController {
         Long userId = UserHolder.getId();
         try {
             String token = tokenHeader.replace("Bearer ", "");
-            int page = request.getPage();
-            int pageSize = request.getPageSize();
-            
+            BigDecimal distance = request.getDistance();
+            BigDecimal wishPrice = request.getWishPrice();
+            BigDecimal startRating = request.getStartRating();
+            BigDecimal endRating = request.getEndRating();
+            Integer page = request.getPage();
+            Integer pageSize = request.getPageSize();
             log.info("用户获取收藏店铺列表: userId={}, page={}, pageSize={}", userId, page, pageSize);
             
             // 通过网关API获取用户收藏店铺列表
@@ -354,6 +358,16 @@ public class UserController {
     @PostMapping("/search")
     public CommonResponse searchStoreAndProduct(@Valid @RequestBody UserSearchRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String keyword = request.getKeyword();
+        BigDecimal distance = request.getDistance();
+        BigDecimal wishPrice = request.getWishPrice();
+        BigDecimal startRating = request.getStartRating();
+        BigDecimal endRating = request.getEndRating();
+        Integer page = request.getPage();
+        Integer pageSize = request.getPageSize();
+        
+        log.info("用户搜索店铺和商品: keyword={}, distance={}, wishPrice={}, startRating={}, endRating={}, page={}, pageSize={}", 
+                keyword, distance, wishPrice, startRating, endRating, page, pageSize);
+        
         if (keyword == null || keyword.trim().isEmpty()) {
             return ResponseBuilder.fail("关键词不能为空");
         }
@@ -361,15 +375,21 @@ public class UserController {
         try {
             String token = tokenHeader.replace("Bearer ", "");
             
-            // 使用现有的searchStoreAndProduct方法
-            List<Map<String, Object>> searchResults = gatewayApiClient.searchStoreAndProduct(
-                keyword.trim(),
-                token
+            // 调用网关API进行搜索，传递所有搜索参数
+            List<Map<String, Object>> searchResults = gatewayApiClient.searchStoreWithFilters(
+                    keyword.trim(),
+                    distance,
+                    wishPrice,
+                    startRating,
+                    endRating,
+                    page,
+                    pageSize,
+                    token
             );
-            
+
             // 处理搜索结果
             List<UserSearchResponse> responses = new ArrayList<>();
-            
+
             if (searchResults != null && !searchResults.isEmpty()) {
                 responses = searchResults.stream().map(store -> {
                      UserSearchResponse response = new UserSearchResponse();
@@ -378,18 +398,44 @@ public class UserController {
                      response.setType((String) store.get("type"));
                      response.setDescription((String) store.get("description"));
                      response.setLocation((String) store.get("location"));
-                     response.setRating((BigDecimal) store.get("rating"));
+                    // 修复rating字段类型转换
+                    Object ratingObj = store.get("rating");
+                    if (ratingObj != null) {
+                        if (ratingObj instanceof BigDecimal) {
+                            response.setRating((BigDecimal) ratingObj);
+                        } else if (ratingObj instanceof Double) {
+                            response.setRating(BigDecimal.valueOf((Double) ratingObj));
+                        } else if (ratingObj instanceof Number) {
+                            response.setRating(BigDecimal.valueOf(((Number) ratingObj).doubleValue()));
+                        }
+                    }
                      response.setStatus((Integer) store.get("status"));
                      response.setImage((String) store.get("image"));
-                     if (store.get("created_at") != null) {
-                         response.setCreatedAt((LocalDateTime) store.get("created_at"));
-                     }
+                    // 修复created_at字段类型转换
+                    Object createdAtObj = store.get("created_at");
+                    if (createdAtObj != null) {
+                        if (createdAtObj instanceof LocalDateTime) {
+                            response.setCreatedAt((LocalDateTime) createdAtObj);
+                        } else if (createdAtObj instanceof String) {
+                            try {
+                                response.setCreatedAt(LocalDateTime.parse((String) createdAtObj));
+                            } catch (Exception e) {
+                                try {
+                                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                                    response.setCreatedAt(LocalDateTime.parse((String) createdAtObj, formatter));
+                                } catch (Exception ex) {
+                                    log.warn("无法解析日期字符串: {}", createdAtObj, ex);
+                                }
+                            }
+                        }
+                    }
                      return response;
                  }).collect(Collectors.toList());
             }
-            
+            log.info("成功获取搜索店铺列表，共{}条记录", responses.size());
             return ResponseBuilder.ok(Map.of("results", responses));
         } catch (Exception e) {
+            log.error("搜索失败", e);
             return ResponseBuilder.fail("搜索失败: " + e.getMessage());
         }
     }
@@ -401,39 +447,81 @@ public class UserController {
      * @param request 评价请求对象
      * @return 评价结果响应
      */
+//    @PostMapping("/review")
+//    public CommonResponse submitReview(@Valid @RequestBody UserReviewRequest request, @RequestHeader("Authorization") String tokenHeader) {
+//        Long userId = UserHolder.getId();
+//        try {
+//            String token = tokenHeader.replace("Bearer ", "");
+//
+//            // 构建评价数据
+//            Map<String, Object> reviewData = new HashMap<>();
+//            reviewData.put("userId", userId);
+//            reviewData.put("storeId", request.getStoreId());
+//            reviewData.put("productId", request.getProductId());
+//            reviewData.put("rating", request.getRating());
+//            reviewData.put("comment", request.getComment());
+//            reviewData.put("images", request.getImages());
+//
+//            // 通过网关API提交评价
+//            boolean success = gatewayApiClient.submitReview(reviewData, token);
+//
+//            if (!success) {
+//                return ResponseBuilder.fail("评价提交失败");
+//            }
+//
+//            UserReviewResponse response = new UserReviewResponse();
+//            response.setComment(request.getComment());
+//            response.setRating(request.getRating());
+//            response.setImages(request.getImages() != null ? request.getImages() : List.of());
+//
+//            return ResponseBuilder.ok(response);
+//        } catch (Exception e) {
+//            return ResponseBuilder.fail("评价提交失败: " + e.getMessage());
+//        }
+//    }
+
     @PostMapping("/review")
-    public CommonResponse submitReview(@Valid @RequestBody UserReviewRequest request, @RequestHeader("Authorization") String tokenHeader) {
+    public CommonResponse submitReview(@Valid @RequestBody UserReviewRequest request, @RequestHeader("Authorization") String tokenHeader){
         Long userId = UserHolder.getId();
+
+        Long storeId = request.getStoreId();
+        Long productId = request.getProductId();
+        Integer rating = request.getRating();
+        String comment = request.getComment();
+        List<String> images = request.getImages();
+        log.info("用户提交评价: userId={}, storeId={}, productId={}, rating={}, comment={}, images={}", userId, storeId, productId, rating, comment, images);
+
         try {
             String token = tokenHeader.replace("Bearer ", "");
-            
+
             // 构建评价数据
             Map<String, Object> reviewData = new HashMap<>();
             reviewData.put("userId", userId);
-            reviewData.put("storeId", request.getStoreId());
-            reviewData.put("productId", request.getProductId());
-            reviewData.put("rating", request.getRating());
-            reviewData.put("comment", request.getComment());
-            reviewData.put("images", request.getImages());
-            
+            reviewData.put("storeId", storeId);
+            reviewData.put("productId", productId);
+            reviewData.put("rating", rating);
+            reviewData.put("comment", comment);
+            reviewData.put("images", images);
+
             // 通过网关API提交评价
             boolean success = gatewayApiClient.submitReview(reviewData, token);
-            
+
             if (!success) {
                 return ResponseBuilder.fail("评价提交失败");
             }
-            
+
             UserReviewResponse response = new UserReviewResponse();
-            response.setComment(request.getComment());
-            response.setRating(request.getRating());
-            response.setImages(request.getImages() != null ? request.getImages() : List.of());
-            
+            response.setComment(comment);
+            response.setRating(rating);
+            response.setImages(images != null ? images : new ArrayList<>());
+
             return ResponseBuilder.ok(response);
+
         } catch (Exception e) {
+            log.error("提交评价失败", e);
             return ResponseBuilder.fail("评价提交失败: " + e.getMessage());
         }
     }
-
     /**
      * 注销账户接口
      * 
@@ -446,68 +534,252 @@ public class UserController {
         return success ? ResponseBuilder.ok() : ResponseBuilder.fail("注销失败");
     }
 
-    /**
-     * 更新浏览历史接口
-     * 通过网关API调用浏览历史服务
-     * 
-     * @param request 更新浏览历史请求对象
-     * @return 更新结果响应
-     */
+
     @PostMapping("/updateViewHistory")
-    public CommonResponse updateViewHistory(@Valid @RequestBody UserUpdateViewHistoryRequest request, @RequestHeader("Authorization") String tokenHeader) {
+    public CommonResponse updateViewHistory(@Valid @RequestBody UserUpdateViewHistoryRequest request) {
+        Long userId = UserHolder.getId();
+        Long storeId = request.getStoreId();
+        LocalDateTime viewTime = request.getViewTime();
+        boolean success = userService.updateViewHistory(userId, storeId,  viewTime);
+        return success ? ResponseBuilder.ok() : ResponseBuilder.fail("添加失败");
+    }
+    @PostMapping("/viewHistory")
+    public CommonResponse getViewHistory(@Valid @RequestBody UserGetViewHistoryRequest request, @RequestHeader("Authorization") String tokenHeader) {
         Long userId = UserHolder.getId();
         try {
             String token = tokenHeader.replace("Bearer ", "");
-            Long storeId = request.getStoreId();
-            
-            log.info("用户更新浏览历史: userId={}, storeId={}", userId, storeId);
-            
-            // 通过网关API更新用户浏览历史
-            boolean success = gatewayApiClient.updateUserViewHistory(userId, storeId, token);
-            
-            if (success) {
-                log.info("成功更新用户浏览历史: userId={}, storeId={}", userId, storeId);
-                return ResponseBuilder.ok("浏览历史更新成功");
-            } else {
-                log.warn("更新用户浏览历史失败: userId={}, storeId={}", userId, storeId);
-                return ResponseBuilder.fail("添加失败");
-            }
-            
+
+            Integer page = request.getPage();
+            Integer pageSize = request.getPageSize();
+            log.info("用户获取浏览店铺历史列表: userId={}, page={}, pageSize={}", userId, page, pageSize);
+
+            // 通过网关API获取用户收藏店铺列表
+            List<Map<String, Object>> favoriteStores = gatewayApiClient.getUserViewHistory(userId, page, pageSize, token);
+
+            List<UserFavoriteResponse> responses = favoriteStores.stream().map(favorite -> {
+                UserFavoriteResponse resp = new UserFavoriteResponse();
+
+                // 设置店铺ID
+                Object storeIdObj = favorite.get("id");
+                if (storeIdObj != null) {
+                    resp.setStoreId(((Number) storeIdObj).longValue());
+                }
+
+                // 设置店铺名称 - 修正字段名
+                resp.setName((String) favorite.get("name"));
+
+                // 设置店铺类型 - 修正字段名
+                resp.setType((String) favorite.get("type"));
+
+                // 设置店铺描述 - 修正字段名
+                resp.setDescription((String) favorite.get("description"));
+
+                // 设置店铺位置 - 修正字段名
+                resp.setLocation((String) favorite.get("location"));
+
+                // 设置评分
+                Object ratingObj = favorite.get("rating");
+                if (ratingObj != null) {
+                    if (ratingObj instanceof BigDecimal) {
+                        resp.setRating((BigDecimal) ratingObj);
+                    } else if (ratingObj instanceof Number) {
+                        resp.setRating(BigDecimal.valueOf(((Number) ratingObj).doubleValue()));
+                    }
+                }
+
+                // 设置店铺状态
+                Object statusObj = favorite.get("status");
+                if (statusObj != null) {
+                    resp.setStatus(((Number) statusObj).intValue());
+                }
+
+                // 设置店铺图片 - 修正字段名
+                resp.setImage((String) favorite.get("image"));
+
+                // 设置收藏时间
+                Object createdAtObj = favorite.get("created_at");
+                if (createdAtObj != null) {
+                    if (createdAtObj instanceof LocalDateTime) {
+                        resp.setCreatedAt((LocalDateTime) createdAtObj);
+                    } else {
+                        resp.setCreatedAt(LocalDateTime.parse(createdAtObj.toString()));
+                    }
+                }
+
+                return resp;
+            }).collect(Collectors.toList());
+
+            log.info("成功获取用户收藏店铺列表，共{}条记录", responses.size());
+            return ResponseBuilder.ok(Map.of("favorites", responses));
+
         } catch (Exception e) {
-            log.error("更新浏览历史失败", e);
-            return ResponseBuilder.fail("更新浏览历史失败: " + e.getMessage());
+            log.error("获取收藏店铺失败", e);
+            return ResponseBuilder.fail("获取收藏店铺失败: " + e.getMessage());
         }
     }
 
-    /**
-     * 获取浏览历史接口（GET方式）
-     * 通过网关API调用浏览历史服务
-     * 
-     * @param tokenHeader 请求头中的Authorization token
-     * @return 浏览历史响应
-     */
-    @GetMapping("/getViewHistory")
-    public CommonResponse getViewHistory(@RequestHeader("Authorization") String tokenHeader) {
-        Long userId = UserHolder.getId();
+    @PostMapping("/user-view-stores")
+    public CommonResponse viewStores(@Valid @RequestBody UserGetFavoriteStoresRequest request, @RequestHeader("Authorization") String tokenHeader) {
+        String type = request.getType();
+        BigDecimal distance = request.getDistance();
+        BigDecimal wishPrice = request.getWishPrice();
+        BigDecimal startRating = request.getStartRating();
+        BigDecimal endRating = request.getEndRating();
+        Integer page = request.getPage();
+        Integer pageSize = request.getPageSize();
+
+        log.info("用户浏览店铺: type={}, distance={}, wishPrice={}, startRating={}, endRating={}, page={}, pageSize={}",
+                type, distance, wishPrice, startRating, endRating, page, pageSize);
+
+        if (type == null || type.trim().isEmpty()) {
+            return ResponseBuilder.fail("关键词不能为空");
+        }
+
         try {
             String token = tokenHeader.replace("Bearer ", "");
-            
-            log.info("获取用户浏览历史: userId={}", userId);
-            
-            // 通过网关API获取用户浏览历史 - 添加分页参数
-            List<Map<String, Object>> viewHistory = gatewayApiClient.getUserViewHistory(userId, 1, 10, token);
-            
-            if (viewHistory != null) {
-                log.info("成功获取用户浏览历史: userId={}, count={}", userId, viewHistory.size());
-                return ResponseBuilder.ok(viewHistory);
-            } else {
-                log.warn("获取用户浏览历史失败: userId={}", userId);
-                return ResponseBuilder.fail("获取浏览历史失败");
+
+            // 调用网关API进行搜索，传递所有搜索参数
+            List<Map<String, Object>> searchResults = gatewayApiClient.viewStores(
+                    type.trim(),
+                    distance,
+                    wishPrice,
+                    startRating,
+                    endRating,
+                    page,
+                    pageSize,
+                    token
+            );
+
+            // 处理搜索结果
+            List<UserSearchResponse> responses = new ArrayList<>();
+
+            if (searchResults != null && !searchResults.isEmpty()) {
+                responses = searchResults.stream().map(store -> {
+                    UserSearchResponse response = new UserSearchResponse();
+                    response.setStoreId(((Number) store.get("id")).longValue());
+                    response.setName((String) store.get("name"));
+                    response.setType((String) store.get("type"));
+                    response.setDescription((String) store.get("description"));
+                    response.setLocation((String) store.get("location"));
+                    // 修复rating字段类型转换
+                    Object ratingObj = store.get("rating");
+                    if (ratingObj != null) {
+                        if (ratingObj instanceof BigDecimal) {
+                            response.setRating((BigDecimal) ratingObj);
+                        } else if (ratingObj instanceof Double) {
+                            response.setRating(BigDecimal.valueOf((Double) ratingObj));
+                        } else if (ratingObj instanceof Number) {
+                            response.setRating(BigDecimal.valueOf(((Number) ratingObj).doubleValue()));
+                        }
+                    }
+                    response.setStatus((Integer) store.get("status"));
+                    response.setImage((String) store.get("image"));
+                    // 修复created_at字段类型转换
+                    Object createdAtObj = store.get("created_at");
+                    if (createdAtObj != null) {
+                        if (createdAtObj instanceof LocalDateTime) {
+                            response.setCreatedAt((LocalDateTime) createdAtObj);
+                        } else if (createdAtObj instanceof String) {
+                            try {
+                                response.setCreatedAt(LocalDateTime.parse((String) createdAtObj));
+                            } catch (Exception e) {
+                                try {
+                                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                                    response.setCreatedAt(LocalDateTime.parse((String) createdAtObj, formatter));
+                                } catch (Exception ex) {
+                                    log.warn("无法解析日期字符串: {}", createdAtObj, ex);
+                                }
+                            }
+                        }
+                    }
+                    return response;
+                }).collect(Collectors.toList());
             }
-            
+            log.info("成功获取浏览店铺列表，共{}条记录", responses.size());
+            return ResponseBuilder.ok(Map.of("results", responses));
         } catch (Exception e) {
-            log.error("获取浏览历史失败", e);
-            return ResponseBuilder.fail("获取浏览历史失败: " + e.getMessage());
+            log.error("搜索失败", e);
+            return ResponseBuilder.fail("搜索失败: " + e.getMessage());
         }
     }
+
+    @PostMapping("/user-view-products")
+    public CommonResponse viewProducts(@Valid @RequestBody UserGetProductByConditionRequest request, @RequestHeader("Authorization") String tokenHeader){
+        Long storeId = request.getStoreId();
+        String category = request.getCategory();
+        Integer page = request.getPage();
+        Integer pageSize = request.getPageSize();
+        log.info("用户浏览商品: storeId={}, category={}, page={}, pageSize={}", storeId, category, page, pageSize);
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            List<Map<String, Object>> searchResults = gatewayApiClient.getProductList(storeId, page, pageSize, category, token);
+
+            // 添加空值检查
+            if (searchResults == null) {
+                searchResults = new ArrayList<>();
+            }
+
+            List<UserGetProductResponse> responses = searchResults.stream().map(product -> {
+                UserGetProductResponse response = new UserGetProductResponse();
+                response.setId(((Number) product.get("id")).longValue());
+                response.setStoreId(((Number) product.get("store_id")).longValue());
+                response.setName((String) product.get("name"));
+                response.setCategory((String) product.get("category"));
+                Object PriceObj = product.get("price");
+                if (PriceObj != null) {
+                    if (PriceObj instanceof BigDecimal) {
+                        response.setRating((BigDecimal) PriceObj);
+                    } else if (PriceObj instanceof Double) {
+                        response.setRating(BigDecimal.valueOf((Double) PriceObj));
+                    } else if (PriceObj instanceof Number) {
+                        response.setRating(BigDecimal.valueOf(((Number) PriceObj).doubleValue()));
+                    }
+                }
+                response.setDescription((String) product.get("description"));
+                response.setImage((String) product.get("image"));
+                response.setStock(((Number) product.get("stock")).intValue());
+                // 修复rating字段类型转换
+                Object ratingObj = product.get("rating");
+                if (ratingObj != null) {
+                    if (ratingObj instanceof BigDecimal) {
+                        response.setRating((BigDecimal) ratingObj);
+                    } else if (ratingObj instanceof Double) {
+                        response.setRating(BigDecimal.valueOf((Double) ratingObj));
+                    } else if (ratingObj instanceof Number) {
+                        response.setRating(BigDecimal.valueOf(((Number) ratingObj).doubleValue()));
+                    }
+                }
+                response.setStatus((Integer) product.get("status"));
+
+                // 添加空值检查
+                Object createdAtObj = product.get("created_at");
+                if (createdAtObj != null) {
+                    if (createdAtObj instanceof LocalDateTime) {
+                        response.setCreatedAt((LocalDateTime) createdAtObj);
+                    } else if (createdAtObj instanceof String) {
+                        try {
+                            response.setCreatedAt(LocalDateTime.parse((String) createdAtObj));
+                        } catch (Exception e) {
+                            try {
+                                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                                response.setCreatedAt(LocalDateTime.parse((String) createdAtObj, formatter));
+                            } catch (Exception ex) {
+                                log.warn("无法解析日期字符串: {}", createdAtObj, ex);
+                            }
+                        }
+                    }
+                }
+                return response;
+            }).collect(Collectors.toList());
+
+            return ResponseBuilder.ok(Map.of("products", responses));
+
+        } catch (Exception e) {
+            log.error("获取用户浏览店铺下的商品列表失败", e);
+            return ResponseBuilder.fail("获取用户浏览店铺下的商品列表失败");
+        }
+    }
+
+
 }
+
