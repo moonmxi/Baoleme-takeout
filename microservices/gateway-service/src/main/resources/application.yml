@@ -11,11 +11,18 @@ spring:
 
   # 数据库配置 - 订单服务独立数据库
   datasource:
-    url: jdbc:mysql://localhost:3306/baoleme_common?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    jdbc-url: jdbc:mysql://localhost:3306/baoleme_common?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
     password: wqy20050308
     driver-class-name: com.mysql.cj.jdbc.Driver
-    
+    hikari:
+      pool-name: CommonHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 3
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
     # 用户数据库
     user:
       jdbc-url: jdbc:mysql://localhost:3306/baoleme_user?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai

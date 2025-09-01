@@ -447,39 +447,81 @@ public class UserController {
      * @param request 评价请求对象
      * @return 评价结果响应
      */
+//    @PostMapping("/review")
+//    public CommonResponse submitReview(@Valid @RequestBody UserReviewRequest request, @RequestHeader("Authorization") String tokenHeader) {
+//        Long userId = UserHolder.getId();
+//        try {
+//            String token = tokenHeader.replace("Bearer ", "");
+//
+//            // 构建评价数据
+//            Map<String, Object> reviewData = new HashMap<>();
+//            reviewData.put("userId", userId);
+//            reviewData.put("storeId", request.getStoreId());
+//            reviewData.put("productId", request.getProductId());
+//            reviewData.put("rating", request.getRating());
+//            reviewData.put("comment", request.getComment());
+//            reviewData.put("images", request.getImages());
+//
+//            // 通过网关API提交评价
+//            boolean success = gatewayApiClient.submitReview(reviewData, token);
+//
+//            if (!success) {
+//                return ResponseBuilder.fail("评价提交失败");
+//            }
+//
+//            UserReviewResponse response = new UserReviewResponse();
+//            response.setComment(request.getComment());
+//            response.setRating(request.getRating());
+//            response.setImages(request.getImages() != null ? request.getImages() : List.of());
+//
+//            return ResponseBuilder.ok(response);
+//        } catch (Exception e) {
+//            return ResponseBuilder.fail("评价提交失败: " + e.getMessage());
+//        }
+//    }
+
     @PostMapping("/review")
-    public CommonResponse submitReview(@Valid @RequestBody UserReviewRequest request, @RequestHeader("Authorization") String tokenHeader) {
+    public CommonResponse submitReview(@Valid @RequestBody UserReviewRequest request, @RequestHeader("Authorization") String tokenHeader){
         Long userId = UserHolder.getId();
+
+        Long storeId = request.getStoreId();
+        Long productId = request.getProductId();
+        Integer rating = request.getRating();
+        String comment = request.getComment();
+        List<String> images = request.getImages();
+        log.info("用户提交评价: userId={}, storeId={}, productId={}, rating={}, comment={}, images={}", userId, storeId, productId, rating, comment, images);
+
         try {
             String token = tokenHeader.replace("Bearer ", "");
-            
+
             // 构建评价数据
             Map<String, Object> reviewData = new HashMap<>();
             reviewData.put("userId", userId);
-            reviewData.put("storeId", request.getStoreId());
-            reviewData.put("productId", request.getProductId());
-            reviewData.put("rating", request.getRating());
-            reviewData.put("comment", request.getComment());
-            reviewData.put("images", request.getImages());
-            
+            reviewData.put("storeId", storeId);
+            reviewData.put("productId", productId);
+            reviewData.put("rating", rating);
+            reviewData.put("comment", comment);
+            reviewData.put("images", images);
+
             // 通过网关API提交评价
             boolean success = gatewayApiClient.submitReview(reviewData, token);
-            
+
             if (!success) {
                 return ResponseBuilder.fail("评价提交失败");
             }
-            
+
             UserReviewResponse response = new UserReviewResponse();
-            response.setComment(request.getComment());
-            response.setRating(request.getRating());
-            response.setImages(request.getImages() != null ? request.getImages() : List.of());
-            
+            response.setComment(comment);
+            response.setRating(rating);
+            response.setImages(images != null ? images : new ArrayList<>());
+
             return ResponseBuilder.ok(response);
+
         } catch (Exception e) {
+            log.error("提交评价失败", e);
             return ResponseBuilder.fail("评价提交失败: " + e.getMessage());
         }
     }
-
     /**
      * 注销账户接口
      * 
@@ -737,6 +779,7 @@ public class UserController {
             return ResponseBuilder.fail("获取用户浏览店铺下的商品列表失败");
         }
     }
+
 
 }
 
