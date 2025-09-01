@@ -27,6 +27,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -357,13 +358,16 @@ public class UserController {
     @PostMapping("/search")
     public CommonResponse searchStoreAndProduct(@Valid @RequestBody UserSearchRequest request, @RequestHeader("Authorization") String tokenHeader) {
         String keyword = request.getKeyword();
-//        BigDecimal distance = request.getDistance();
-//        BigDecimal wishPrice = request.getWishPrice();
-//        BigDecimal startRating = request.getStartRating();
-//        BigDecimal endRating = request.getEndRating();
+        BigDecimal distance = request.getDistance();
+        BigDecimal wishPrice = request.getWishPrice();
+        BigDecimal startRating = request.getStartRating();
+        BigDecimal endRating = request.getEndRating();
         Integer page = request.getPage();
         Integer pageSize = request.getPageSize();
-        log.info("用户搜索店铺和商品: keyword={}, page={}, pageSize={}", keyword, page, pageSize);
+        
+        log.info("用户搜索店铺和商品: keyword={}, distance={}, wishPrice={}, startRating={}, endRating={}, page={}, pageSize={}", 
+                keyword, distance, wishPrice, startRating, endRating, page, pageSize);
+        
         if (keyword == null || keyword.trim().isEmpty()) {
             return ResponseBuilder.fail("关键词不能为空");
         }
@@ -371,13 +375,16 @@ public class UserController {
         try {
             String token = tokenHeader.replace("Bearer ", "");
             
-            // 使用现有的searchStoreAndProduct方法
-            List<Map<String, Object>> searchResults = gatewayApiClient.searchStore(
+            // 调用网关API进行搜索，传递所有搜索参数
+            List<Map<String, Object>> searchResults = gatewayApiClient.searchStoreWithFilters(
+                    keyword.trim(),
+                    distance,
+                    wishPrice,
+                    startRating,
+                    endRating,
                     page,
                     pageSize,
-                    keyword,
                     token
-
             );
 
             // 处理搜索结果
@@ -391,18 +398,44 @@ public class UserController {
                      response.setType((String) store.get("type"));
                      response.setDescription((String) store.get("description"));
                      response.setLocation((String) store.get("location"));
-                     response.setRating((BigDecimal) store.get("rating"));
+                    // 修复rating字段类型转换
+                    Object ratingObj = store.get("rating");
+                    if (ratingObj != null) {
+                        if (ratingObj instanceof BigDecimal) {
+                            response.setRating((BigDecimal) ratingObj);
+                        } else if (ratingObj instanceof Double) {
+                            response.setRating(BigDecimal.valueOf((Double) ratingObj));
+                        } else if (ratingObj instanceof Number) {
+                            response.setRating(BigDecimal.valueOf(((Number) ratingObj).doubleValue()));
+                        }
+                    }
                      response.setStatus((Integer) store.get("status"));
                      response.setImage((String) store.get("image"));
-                     if (store.get("created_at") != null) {
-                         response.setCreatedAt((LocalDateTime) store.get("created_at"));
-                     }
+                    // 修复created_at字段类型转换
+                    Object createdAtObj = store.get("created_at");
+                    if (createdAtObj != null) {
+                        if (createdAtObj instanceof LocalDateTime) {
+                            response.setCreatedAt((LocalDateTime) createdAtObj);
+                        } else if (createdAtObj instanceof String) {
+                            try {
+                                response.setCreatedAt(LocalDateTime.parse((String) createdAtObj));
+                            } catch (Exception e) {
+                                try {
+                                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                                    response.setCreatedAt(LocalDateTime.parse((String) createdAtObj, formatter));
+                                } catch (Exception ex) {
+                                    log.warn("无法解析日期字符串: {}", createdAtObj, ex);
+                                }
+                            }
+                        }
+                    }
                      return response;
                  }).collect(Collectors.toList());
             }
             log.info("成功获取搜索店铺列表，共{}条记录", responses.size());
             return ResponseBuilder.ok(Map.of("results", responses));
         } catch (Exception e) {
+            log.error("搜索失败", e);
             return ResponseBuilder.fail("搜索失败: " + e.getMessage());
         }
     }
