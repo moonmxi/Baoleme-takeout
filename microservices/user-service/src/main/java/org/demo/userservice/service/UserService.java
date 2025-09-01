@@ -9,7 +9,11 @@
  */
 package org.demo.userservice.service;
 
+import org.demo.userservice.pojo.Store;
 import org.demo.userservice.pojo.User;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 用户业务接口
@@ -92,4 +96,8 @@ public interface UserService {
      * @return 是否删除成功
      */
     boolean deleteFavorite(Long userId, Long storeId);
+
+    boolean updateViewHistory(Long userId, Long storeId, LocalDateTime viewTime);
+
+    List<Store> getViewHistory(Long userId, Integer page, Integer pageSize);
 }

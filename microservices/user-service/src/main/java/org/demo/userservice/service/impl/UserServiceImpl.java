@@ -10,12 +10,14 @@
 package org.demo.userservice.service.impl;
 
 import org.demo.userservice.mapper.UserMapper;
+import org.demo.userservice.pojo.Store;
 import org.demo.userservice.pojo.User;
 import org.demo.userservice.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 用户业务服务实现类
@@ -201,5 +203,13 @@ public class UserServiceImpl implements UserService {
         return userMapper.deleteFavorite(userId, storeId) > 0;
     }
 
-
+    @Override
+    public boolean updateViewHistory(Long userId, Long storeId, LocalDateTime viewTime){
+        return userMapper.addViewHistory(userId, storeId, viewTime) > 0;
+    }
+    @Override
+    public List<Store> getViewHistory(Long userId, Integer page, Integer pageSize){
+        int offset = (page - 1) * pageSize;
+        return userMapper.selectViewHistory(userId, offset, pageSize);
+    }
 }

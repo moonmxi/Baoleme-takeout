@@ -11,8 +11,10 @@ package org.demo.userservice.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.*;
+import org.demo.userservice.pojo.Store;
 import org.demo.userservice.pojo.User;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -117,4 +119,17 @@ public interface UserMapper extends BaseMapper<User> {
     @Delete("DELETE FROM favorite WHERE user_id = #{userId} AND store_id = #{storeId}")
     int deleteFavorite(Long userId, Long storeId);
 
+    @Update("INSERT INTO browse_history(user_id, store_id, created_at) " +
+            "VALUES(#{userId}, #{storeId}, #{viewTime}) " +
+            "ON DUPLICATE KEY UPDATE created_at = #{viewTime}")
+    int addViewHistory(Long userId, Long storeId, LocalDateTime viewTime);
+
+    @Select("SELECT s.* FROM store s " +
+            "INNER JOIN browse_history bh ON s.id = bh.store_id " +
+            "WHERE bh.user_id = #{userId} " +
+            "ORDER BY bh.created_at DESC " +  // 按浏览时间倒序
+            "LIMIT #{offset}, #{pageSize}")
+    List<Store> selectViewHistory(@Param("userId") Long userId,
+                                  @Param("offset") int offset,
+                                  @Param("pageSize") Integer pageSize);
 }

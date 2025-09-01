@@ -19,6 +19,7 @@ import org.demo.userservice.common.UserHolder;
 
 import org.demo.userservice.dto.request.user.*;
 import org.demo.userservice.dto.response.user.*;
+import org.demo.userservice.pojo.Store;
 import org.demo.userservice.pojo.User;
 import org.demo.userservice.service.UserService;
 import org.springframework.beans.BeanUtils;
@@ -492,68 +493,22 @@ public class UserController {
         return success ? ResponseBuilder.ok() : ResponseBuilder.fail("注销失败");
     }
 
-    /**
-     * 更新浏览历史接口
-     * 通过网关API调用浏览历史服务
-     * 
-     * @param request 更新浏览历史请求对象
-     * @return 更新结果响应
-     */
-    @PostMapping("/updateViewHistory")
-    public CommonResponse updateViewHistory(@Valid @RequestBody UserUpdateViewHistoryRequest request, @RequestHeader("Authorization") String tokenHeader) {
-        Long userId = UserHolder.getId();
-        try {
-            String token = tokenHeader.replace("Bearer ", "");
-            Long storeId = request.getStoreId();
-            
-            log.info("用户更新浏览历史: userId={}, storeId={}", userId, storeId);
-            
-            // 通过网关API更新用户浏览历史
-            boolean success = gatewayApiClient.updateUserViewHistory(userId, storeId, token);
-            
-            if (success) {
-                log.info("成功更新用户浏览历史: userId={}, storeId={}", userId, storeId);
-                return ResponseBuilder.ok("浏览历史更新成功");
-            } else {
-                log.warn("更新用户浏览历史失败: userId={}, storeId={}", userId, storeId);
-                return ResponseBuilder.fail("添加失败");
-            }
-            
-        } catch (Exception e) {
-            log.error("更新浏览历史失败", e);
-            return ResponseBuilder.fail("更新浏览历史失败: " + e.getMessage());
-        }
-    }
 
-    /**
-     * 获取浏览历史接口（GET方式）
-     * 通过网关API调用浏览历史服务
-     * 
-     * @param tokenHeader 请求头中的Authorization token
-     * @return 浏览历史响应
-     */
-    @GetMapping("/getViewHistory")
-    public CommonResponse getViewHistory(@RequestHeader("Authorization") String tokenHeader) {
+    @PostMapping("/updateViewHistory")
+    public CommonResponse updateViewHistory(@Valid @RequestBody UserUpdateViewHistoryRequest request) {
         Long userId = UserHolder.getId();
-        try {
-            String token = tokenHeader.replace("Bearer ", "");
-            
-            log.info("获取用户浏览历史: userId={}", userId);
-            
-            // 通过网关API获取用户浏览历史 - 添加分页参数
-            List<Map<String, Object>> viewHistory = gatewayApiClient.getUserViewHistory(userId, 1, 10, token);
-            
-            if (viewHistory != null) {
-                log.info("成功获取用户浏览历史: userId={}, count={}", userId, viewHistory.size());
-                return ResponseBuilder.ok(viewHistory);
-            } else {
-                log.warn("获取用户浏览历史失败: userId={}", userId);
-                return ResponseBuilder.fail("获取浏览历史失败");
-            }
-            
-        } catch (Exception e) {
-            log.error("获取浏览历史失败", e);
-            return ResponseBuilder.fail("获取浏览历史失败: " + e.getMessage());
-        }
+        Long storeId = request.getStoreId();
+        LocalDateTime viewTime = request.getViewTime();
+        boolean success = userService.updateViewHistory(userId, storeId,  viewTime);
+        return success ? ResponseBuilder.ok() : ResponseBuilder.fail("添加失败");
+    }
+    @PostMapping("/viewHistory")
+    public CommonResponse getViewHistory(@Valid @RequestBody UserGetViewHistoryRequest request) {
+        Long userId = UserHolder.getId();
+        Integer page = request.getPage();
+        Integer pageSize = request.getPageSize();
+        List<Store> response = userService.getViewHistory(userId, page, pageSize);
+
+        return ResponseBuilder.ok(Map.of("stores", response));
     }
 }

@@ -316,7 +316,7 @@ public class GatewayApiClient {
         requestBody.put("store_id", storeId);
         requestBody.put("view_time", LocalDateTime.now().toString());
         
-        String endpoint = "/api/database/view_history";
+        String endpoint = "/api/database/browse_history";
         return callGatewaySubmitApi(endpoint, requestBody, token);
     }
 
