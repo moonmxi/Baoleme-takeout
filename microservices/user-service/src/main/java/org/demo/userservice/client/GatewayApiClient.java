@@ -379,6 +379,39 @@ public class GatewayApiClient {
         return storeDetailsList;
     }
 
+    public List<Map<String, Object>> viewStores(String type, BigDecimal distance,
+                                                            BigDecimal wishPrice, BigDecimal startRating,
+                                                            BigDecimal endRating, int page,
+                                                            int pageSize, String token) {
+        log.info("调用网关API带过滤条件搜索店铺: keyword={}, page={}, pageSize={}", type, page, pageSize);
+
+        // 构建查询条件
+        Map<String, Object> conditions = new HashMap<>();
+        if (type != null && !type.trim().isEmpty()) {
+            conditions.put("type", type);
+        }
+        if (distance != null) {
+            conditions.put("distance", distance);
+        }
+        if (wishPrice != null) {
+            conditions.put("wish_price", wishPrice);
+        }
+        if (startRating != null) {
+            conditions.put("start_rating", startRating);
+        }
+        if (endRating != null) {
+            conditions.put("end_rating", endRating);
+        }
+
+        Map<String, Object> requestBody = new HashMap<>();
+        if (!conditions.isEmpty()) {
+            requestBody.put("condition", conditions);
+        }
+
+        String endpoint = "/api/database/store/page?page=" + page + "&pageSize=" + pageSize;
+        return callGatewayPostApi(endpoint, requestBody, token);
+    }
+
     /**
      * 调用网关API的通用POST方法（分页查询）
      */

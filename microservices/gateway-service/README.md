@@ -434,7 +434,7 @@ src/
 │   │           └── DatabaseServiceImpl.java  # 数据库服务实现
 │   └── resources/
 │       ├── application.yml                   # 配置文件
-│       └── gateway-service.sql               # 数据库初始化脚本
+│       └── common-service.sql               # 数据库初始化脚本
 └── test/
     └── java/                                 # 测试代码
 ```
