@@ -111,3 +111,77 @@ logging:
     org.springframework.security: debug
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# 网关数据库操作配置
+gateway:
+  database:
+    # 操作超时时间（毫秒）
+    timeout: 30000
+    # 批量操作大小
+    batch-size: 1000
+    # 是否启用事务
+    enable-transaction: true
+    # 连接池监控
+    pool-monitoring: true
+
+  # 表映射配置 - 定义每个数据表对应的数据库
+  table-mapping:
+    # 用户服务相关表 -> baoleme_user 数据库
+    user: user
+    favorite: user
+
+    # 商家服务相关表 -> baoleme_merchant 数据库
+    merchant: merchant
+    store: merchant
+    product: merchant
+    sales: merchant
+
+    # 骑手服务相关表 -> baoleme_rider 数据库
+    rider: rider
+
+    # 管理员服务相关表 -> baoleme_admin 数据库
+    admin: admin
+
+    # 网关服务相关表 -> baoleme_common 数据库
+    # 订单相关
+    order: common
+    order_item: common
+
+    # 评价相关
+    review: common
+
+    # 购物车相关
+    cart: user
+
+    # 优惠券相关
+    coupon: common
+
+    # 消息相关
+    message: common
+
+    # 数据同步相关
+    sync_log: common
+    message_log: common
+
+    # 默认数据库配置
+    default-datasource: common
+
+    # 数据库别名映射
+    datasource-aliases:
+      user-db: user
+      merchant-db: merchant
+      rider-db: rider
+      admin-db: admin
+      gateway-db: common
+      order-db: common
+      message-db: common
