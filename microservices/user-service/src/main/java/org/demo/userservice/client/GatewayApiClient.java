@@ -228,13 +228,13 @@ public class GatewayApiClient {
             conditions.put("distance", distance);
         }
         if (wishPrice != null) {
-            conditions.put("wish_price", wishPrice);
+            conditions.put("avg_price", wishPrice);
         }
         if (startRating != null) {
-            conditions.put("start_rating", startRating);
+            conditions.put("rating_gte", startRating);
         }
         if (endRating != null) {
-            conditions.put("end_rating", endRating);
+            conditions.put("rating_lte", endRating);
         }
         
         Map<String, Object> requestBody = new HashMap<>();
@@ -383,7 +383,7 @@ public class GatewayApiClient {
                                                             BigDecimal wishPrice, BigDecimal startRating,
                                                             BigDecimal endRating, int page,
                                                             int pageSize, String token) {
-        log.info("调用网关API带过滤条件搜索店铺: keyword={}, page={}, pageSize={}", type, page, pageSize);
+        log.info("调用网关API带过滤条件搜索店铺: type={}, page={}, pageSize={}", type, page, pageSize);
 
         // 构建查询条件
         Map<String, Object> conditions = new HashMap<>();
@@ -394,13 +394,13 @@ public class GatewayApiClient {
             conditions.put("distance", distance);
         }
         if (wishPrice != null) {
-            conditions.put("wish_price", wishPrice);
+            conditions.put("avg_price_lte", wishPrice);
         }
         if (startRating != null) {
-            conditions.put("start_rating", startRating);
+            conditions.put("rating_gte", startRating);
         }
         if (endRating != null) {
-            conditions.put("end_rating", endRating);
+            conditions.put("rating_lte", endRating);
         }
 
         Map<String, Object> requestBody = new HashMap<>();

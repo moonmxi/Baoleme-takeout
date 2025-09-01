@@ -19,7 +19,6 @@ import org.demo.userservice.common.UserHolder;
 
 import org.demo.userservice.dto.request.user.*;
 import org.demo.userservice.dto.response.user.*;
-import org.demo.userservice.pojo.Store;
 import org.demo.userservice.pojo.User;
 import org.demo.userservice.service.UserService;
 import org.springframework.beans.BeanUtils;
@@ -670,7 +669,8 @@ public class UserController {
         Integer pageSize = request.getPageSize();
         log.info("用户浏览商品: storeId={}, category={}, page={}, pageSize={}", storeId, category, page, pageSize);
         try {
-            List<Map<String, Object>> searchResults = gatewayApiClient.getProductList(storeId, page, pageSize, category, tokenHeader);
+            String token = tokenHeader.replace("Bearer ", "");
+            List<Map<String, Object>> searchResults = gatewayApiClient.getProductList(storeId, page, pageSize, category, token);
 
             // 添加空值检查
             if (searchResults == null) {
@@ -683,21 +683,52 @@ public class UserController {
                 response.setStoreId(((Number) product.get("store_id")).longValue());
                 response.setName((String) product.get("name"));
                 response.setCategory((String) product.get("category"));
-                response.setPrice((BigDecimal) product.get("price"));
+                Object PriceObj = product.get("price");
+                if (PriceObj != null) {
+                    if (PriceObj instanceof BigDecimal) {
+                        response.setRating((BigDecimal) PriceObj);
+                    } else if (PriceObj instanceof Double) {
+                        response.setRating(BigDecimal.valueOf((Double) PriceObj));
+                    } else if (PriceObj instanceof Number) {
+                        response.setRating(BigDecimal.valueOf(((Number) PriceObj).doubleValue()));
+                    }
+                }
                 response.setDescription((String) product.get("description"));
                 response.setImage((String) product.get("image"));
                 response.setStock(((Number) product.get("stock")).intValue());
-                response.setRating((BigDecimal) product.get("rating"));
+                // 修复rating字段类型转换
+                Object ratingObj = product.get("rating");
+                if (ratingObj != null) {
+                    if (ratingObj instanceof BigDecimal) {
+                        response.setRating((BigDecimal) ratingObj);
+                    } else if (ratingObj instanceof Double) {
+                        response.setRating(BigDecimal.valueOf((Double) ratingObj));
+                    } else if (ratingObj instanceof Number) {
+                        response.setRating(BigDecimal.valueOf(((Number) ratingObj).doubleValue()));
+                    }
+                }
                 response.setStatus((Integer) product.get("status"));
 
                 // 添加空值检查
                 Object createdAtObj = product.get("created_at");
-                if (createdAtObj instanceof LocalDateTime) {
-                    response.setCreatedAt((LocalDateTime) createdAtObj);
+                if (createdAtObj != null) {
+                    if (createdAtObj instanceof LocalDateTime) {
+                        response.setCreatedAt((LocalDateTime) createdAtObj);
+                    } else if (createdAtObj instanceof String) {
+                        try {
+                            response.setCreatedAt(LocalDateTime.parse((String) createdAtObj));
+                        } catch (Exception e) {
+                            try {
+                                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                                response.setCreatedAt(LocalDateTime.parse((String) createdAtObj, formatter));
+                            } catch (Exception ex) {
+                                log.warn("无法解析日期字符串: {}", createdAtObj, ex);
+                            }
+                        }
+                    }
                 }
-
                 return response;
-            }).collect(Collectors.toList()); // 修复：添加缺失的collect调用
+            }).collect(Collectors.toList());
 
             return ResponseBuilder.ok(Map.of("products", responses));
 
