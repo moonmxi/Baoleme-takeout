@@ -7,10 +7,11 @@ server:
 spring:
   application:
     name: order-service
-  
+
+
   # 数据库配置 - 订单服务独立数据库
   datasource:
-    url: jdbc:mysql://localhost:3306/baoleme_gateway?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/baoleme_common?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
     password: wqy20050308
     driver-class-name: com.mysql.cj.jdbc.Driver
