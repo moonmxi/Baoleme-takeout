@@ -124,12 +124,5 @@ public interface UserMapper extends BaseMapper<User> {
             "ON DUPLICATE KEY UPDATE created_at = #{viewTime}")
     int addViewHistory(Long userId, Long storeId, LocalDateTime viewTime);
 
-    @Select("SELECT s.* FROM store s " +
-            "INNER JOIN browse_history bh ON s.id = bh.store_id " +
-            "WHERE bh.user_id = #{userId} " +
-            "ORDER BY bh.created_at DESC " +  // 按浏览时间倒序
-            "LIMIT #{offset}, #{pageSize}")
-    List<Store> selectViewHistory(@Param("userId") Long userId,
-                                  @Param("offset") int offset,
-                                  @Param("pageSize") Integer pageSize);
+
 }

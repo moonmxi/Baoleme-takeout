@@ -503,12 +503,77 @@ public class UserController {
         return success ? ResponseBuilder.ok() : ResponseBuilder.fail("添加失败");
     }
     @PostMapping("/viewHistory")
-    public CommonResponse getViewHistory(@Valid @RequestBody UserGetViewHistoryRequest request) {
+    public CommonResponse getViewHistory(@Valid @RequestBody UserGetViewHistoryRequest request, @RequestHeader("Authorization") String tokenHeader) {
         Long userId = UserHolder.getId();
-        Integer page = request.getPage();
-        Integer pageSize = request.getPageSize();
-        List<Store> response = userService.getViewHistory(userId, page, pageSize);
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
 
-        return ResponseBuilder.ok(Map.of("stores", response));
+            Integer page = request.getPage();
+            Integer pageSize = request.getPageSize();
+            log.info("用户获取浏览店铺历史列表: userId={}, page={}, pageSize={}", userId, page, pageSize);
+
+            // 通过网关API获取用户收藏店铺列表
+            List<Map<String, Object>> favoriteStores = gatewayApiClient.getUserViewHistory(userId, page, pageSize, token);
+
+            List<UserFavoriteResponse> responses = favoriteStores.stream().map(favorite -> {
+                UserFavoriteResponse resp = new UserFavoriteResponse();
+
+                // 设置店铺ID
+                Object storeIdObj = favorite.get("id");
+                if (storeIdObj != null) {
+                    resp.setStoreId(((Number) storeIdObj).longValue());
+                }
+
+                // 设置店铺名称 - 修正字段名
+                resp.setName((String) favorite.get("name"));
+
+                // 设置店铺类型 - 修正字段名
+                resp.setType((String) favorite.get("type"));
+
+                // 设置店铺描述 - 修正字段名
+                resp.setDescription((String) favorite.get("description"));
+
+                // 设置店铺位置 - 修正字段名
+                resp.setLocation((String) favorite.get("location"));
+
+                // 设置评分
+                Object ratingObj = favorite.get("rating");
+                if (ratingObj != null) {
+                    if (ratingObj instanceof BigDecimal) {
+                        resp.setRating((BigDecimal) ratingObj);
+                    } else if (ratingObj instanceof Number) {
+                        resp.setRating(BigDecimal.valueOf(((Number) ratingObj).doubleValue()));
+                    }
+                }
+
+                // 设置店铺状态
+                Object statusObj = favorite.get("status");
+                if (statusObj != null) {
+                    resp.setStatus(((Number) statusObj).intValue());
+                }
+
+                // 设置店铺图片 - 修正字段名
+                resp.setImage((String) favorite.get("image"));
+
+                // 设置收藏时间
+                Object createdAtObj = favorite.get("created_at");
+                if (createdAtObj != null) {
+                    if (createdAtObj instanceof LocalDateTime) {
+                        resp.setCreatedAt((LocalDateTime) createdAtObj);
+                    } else {
+                        resp.setCreatedAt(LocalDateTime.parse(createdAtObj.toString()));
+                    }
+                }
+
+                return resp;
+            }).collect(Collectors.toList());
+
+            log.info("成功获取用户收藏店铺列表，共{}条记录", responses.size());
+            return ResponseBuilder.ok(Map.of("favorites", responses));
+
+        } catch (Exception e) {
+            log.error("获取收藏店铺失败", e);
+            return ResponseBuilder.fail("获取收藏店铺失败: " + e.getMessage());
+        }
     }
 }

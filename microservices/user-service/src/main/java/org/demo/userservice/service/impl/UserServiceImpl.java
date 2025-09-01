@@ -207,9 +207,4 @@ public class UserServiceImpl implements UserService {
     public boolean updateViewHistory(Long userId, Long storeId, LocalDateTime viewTime){
         return userMapper.addViewHistory(userId, storeId, viewTime) > 0;
     }
-    @Override
-    public List<Store> getViewHistory(Long userId, Integer page, Integer pageSize){
-        int offset = (page - 1) * pageSize;
-        return userMapper.selectViewHistory(userId, offset, pageSize);
-    }
 }

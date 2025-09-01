@@ -324,20 +324,59 @@ public class GatewayApiClient {
      * 获取用户浏览历史列表
      */
     public List<Map<String, Object>> getUserViewHistory(Long userId, int page, int pageSize, String token) {
-        log.info("调用网关API获取用户浏览历史列表: userId={}, page={}, pageSize={}", userId, page, pageSize);
-        
-        Map<String, Object> conditions = new HashMap<>();
+        log.info("调用网关API获取用户收藏店铺列表: userId={}, page={}, pageSize={}", userId, page, pageSize);
+
+        // 第一步：查询browsehistory表获取storeId列表
+        Map<String, Object> vhConditions = new HashMap<>();
         if (userId != null) {
-            conditions.put("user_id", userId);
+            vhConditions.put("user_id", userId);
         }
-        
-        Map<String, Object> requestBody = new HashMap<>();
-        if (!conditions.isEmpty()) {
-            requestBody.put("condition", conditions);
+
+        Map<String, Object> vhRequestBody = new HashMap<>();
+        if (!vhConditions.isEmpty()) {
+            vhRequestBody.put("condition", vhConditions);
         }
-        
-        String endpoint = "/api/database/browse_history/page?page=" + page + "&pageSize=" + pageSize;
-        return callGatewayPostApi(endpoint, requestBody, token);
+
+        String vhEndpoint = "/api/database/browse_history/page?page=" + page + "&pageSize=" + pageSize;
+        List<Map<String, Object>> vhRecords = callGatewayPostApi(vhEndpoint, vhRequestBody, token);
+
+        if (vhRecords == null || vhRecords.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 第二步：提取storeId列表，查询store表获取详细信息
+        List<Map<String, Object>> storeDetailsList = new ArrayList<>();
+
+        for (Map<String, Object> vhRecord : vhRecords) {
+            Object storeIdObj = vhRecord.get("store_id");
+            if (storeIdObj != null) {
+                Long storeId = null;
+                if (storeIdObj instanceof Number) {
+                    storeId = ((Number) storeIdObj).longValue();
+                } else if (storeIdObj instanceof String) {
+                    try {
+                        storeId = Long.parseLong((String) storeIdObj);
+                    } catch (NumberFormatException e) {
+                        log.warn("无法解析storeId: {}", storeIdObj);
+                        continue;
+                    }
+                }
+
+                if (storeId != null) {
+                    // 查询store表获取店铺详细信息
+                    Map<String, Object> storeDetails = getStoreById(storeId, token);
+                    if (storeDetails != null && !storeDetails.isEmpty()) {
+                        // 将收藏时间等信息也添加到结果中
+                        storeDetails.put("favorite_time", vhRecord.get("created_time"));
+                        storeDetails.put("favorite_id", vhRecord.get("id"));
+                        storeDetailsList.add(storeDetails);
+                    }
+                }
+            }
+        }
+
+        log.info("成功获取用户浏览店铺历史详细信息，共{}条", storeDetailsList.size());
+        return storeDetailsList;
     }
 
     /**

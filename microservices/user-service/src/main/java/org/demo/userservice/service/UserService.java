@@ -99,5 +99,4 @@ public interface UserService {
 
     boolean updateViewHistory(Long userId, Long storeId, LocalDateTime viewTime);
 
-    List<Store> getViewHistory(Long userId, Integer page, Integer pageSize);
 }
