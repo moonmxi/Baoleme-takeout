@@ -142,4 +142,127 @@ public class GatewayApiClient {
             return new HashMap<>();
         }
     }
+
+    /**
+     * 根据店铺ID获取店铺信息
+     * 
+     * @param storeId 店铺ID
+     * @param token JWT认证令牌
+     * @return 店铺信息Map，包含name、description等字段
+     */
+    public Map<String, Object> getStoreById(Long storeId, String token) {
+        try {
+            log.info("调用网关API获取店铺信息: storeId={}", storeId);
+            
+            String url = gatewayBaseUrl + "/api/database/store/" + storeId;
+            
+            // 处理token格式，避免重复添加Bearer前缀
+            String authHeader = token;
+            if (token != null && !token.startsWith("Bearer ")) {
+                authHeader = "Bearer " + token;
+            }
+            
+            Map<String, Object> response = webClient.get()
+                    .uri(url)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.AUTHORIZATION, authHeader)
+                    .retrieve()
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .timeout(Duration.ofSeconds(requestTimeout))
+                    .block();
+            
+            if (response != null && Boolean.TRUE.equals(response.get("success"))) {
+                return (Map<String, Object>) response.get("data");
+            }
+            
+            log.warn("网关API返回异常响应: {}", response);
+            return new HashMap<>();
+            
+        } catch (Exception e) {
+            log.error("调用网关API获取店铺信息失败: storeId={}", storeId, e);
+            return new HashMap<>();
+        }
+    }
+
+    /**
+     * 根据商家ID获取商家信息
+     * 
+     * @param merchantId 商家ID
+     * @param token JWT认证令牌
+     * @return 商家信息Map，包含username、phone等字段
+     */
+    public Map<String, Object> getMerchantById(Long merchantId, String token) {
+        try {
+            log.info("调用网关API获取商家信息: merchantId={}", merchantId);
+            
+            String url = gatewayBaseUrl + "/api/database/merchant/" + merchantId;
+            
+            // 处理token格式，避免重复添加Bearer前缀
+            String authHeader = token;
+            if (token != null && !token.startsWith("Bearer ")) {
+                authHeader = "Bearer " + token;
+            }
+            
+            Map<String, Object> response = webClient.get()
+                    .uri(url)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.AUTHORIZATION, authHeader)
+                    .retrieve()
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .timeout(Duration.ofSeconds(requestTimeout))
+                    .block();
+            
+            if (response != null && Boolean.TRUE.equals(response.get("success"))) {
+                return (Map<String, Object>) response.get("data");
+            }
+            
+            log.warn("网关API返回异常响应: {}", response);
+            return new HashMap<>();
+            
+        } catch (Exception e) {
+            log.error("调用网关API获取商家信息失败: merchantId={}", merchantId, e);
+            return new HashMap<>();
+        }
+    }
+
+    /**
+     * 根据骑手ID获取骑手信息
+     * 
+     * @param riderId 骑手ID
+     * @param token JWT认证令牌
+     * @return 骑手信息Map，包含username、phone等字段
+     */
+    public Map<String, Object> getRiderById(Long riderId, String token) {
+        try {
+            log.info("调用网关API获取骑手信息: riderId={}", riderId);
+            
+            String url = gatewayBaseUrl + "/api/database/rider/" + riderId;
+            
+            // 处理token格式，避免重复添加Bearer前缀
+            String authHeader = token;
+            if (token != null && !token.startsWith("Bearer ")) {
+                authHeader = "Bearer " + token;
+            }
+            
+            Map<String, Object> response = webClient.get()
+                    .uri(url)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.AUTHORIZATION, authHeader)
+                    .retrieve()
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .timeout(Duration.ofSeconds(requestTimeout))
+                    .block();
+            
+            if (response != null && Boolean.TRUE.equals(response.get("success"))) {
+                return (Map<String, Object>) response.get("data");
+            }
+            
+            log.warn("网关API返回异常响应: {}", response);
+            return new HashMap<>();
+            
+        } catch (Exception e) {
+            log.error("调用网关API获取骑手信息失败: riderId={}", riderId, e);
+            return new HashMap<>();
+        }
+    }
 }

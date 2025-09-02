@@ -8,6 +8,7 @@
  */
 package org.demo.common.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 /**
@@ -20,5 +21,6 @@ public class AvailableCouponRequest {
     /**
      * 店铺ID
      */
+    @JsonProperty("store_id")
     private Long storeId;
 }

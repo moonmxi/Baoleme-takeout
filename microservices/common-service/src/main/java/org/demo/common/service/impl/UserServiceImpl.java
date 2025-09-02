@@ -11,8 +11,6 @@ package org.demo.common.service.impl;
 import org.demo.common.mapper.ReviewMapper;
 import org.demo.common.dto.request.UserReviewRequest;
 import org.demo.common.dto.response.UserReviewResponse;
-import org.demo.common.mapper.ProductMapper;
-import org.demo.common.pojo.Product;
 import org.demo.common.pojo.Review;
 import org.demo.common.service.UserService;
 import org.springframework.stereotype.Service;
@@ -29,17 +27,14 @@ import java.time.LocalDateTime;
 public class UserServiceImpl implements UserService {
 
     private final ReviewMapper reviewMapper;
-    private final ProductMapper productMapper;
 
     /**
      * 构造函数注入依赖
      * 
      * @param reviewMapper 评论数据访问层
-     * @param productMapper 商品数据访问层
      */
-    public UserServiceImpl(ReviewMapper reviewMapper, ProductMapper productMapper) {
+    public UserServiceImpl(ReviewMapper reviewMapper) {
         this.reviewMapper = reviewMapper;
-        this.productMapper = productMapper;
     }
 
     /**
@@ -48,7 +43,7 @@ public class UserServiceImpl implements UserService {
      * @param userId 用户ID
      * @param request 评价请求
      * @return 评价响应结果
-     * @throws IllegalArgumentException 当店铺ID或商品ID无效时抛出异常
+     * @throws RuntimeException 当评论提交失败时抛出异常
      */
     @Override
     @Transactional
@@ -57,22 +52,6 @@ public class UserServiceImpl implements UserService {
 
         Long storeId = request.getStoreId();
         Long productId = request.getProductId();
-
-        // 校验店铺是否存在（这里简化处理，实际应该调用StoreService）
-        // 由于是微服务架构，这里可能需要通过RPC调用其他服务
-        String storeName = "店铺" + storeId; // 简化处理
-        response.setStoreName(storeName);
-
-        // 如果 productId 不为 null，则查询商品名称
-        String productName = null;
-        if (productId != null) {
-            Product product = productMapper.selectById(productId);
-            if (product == null) {
-                throw new IllegalArgumentException("无效的商品ID");
-            }
-            productName = product.getName();
-            response.setProductName(productName);
-        }
 
         response.setComment(request.getComment());
         response.setRating(request.getRating());

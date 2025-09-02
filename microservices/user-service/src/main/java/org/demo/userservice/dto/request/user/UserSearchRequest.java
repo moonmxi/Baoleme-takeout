@@ -9,6 +9,6 @@ public class UserSearchRequest {
     private BigDecimal wishPrice;
     private BigDecimal startRating;
     private BigDecimal endRating;
-    private Integer page;
-    private Integer pageSize;
+    private Integer page = 1;
+    private Integer pageSize = 10;
 }

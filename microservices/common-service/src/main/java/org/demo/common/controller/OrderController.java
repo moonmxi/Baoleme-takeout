@@ -9,16 +9,19 @@
 package org.demo.common.controller;
 
 import jakarta.validation.Valid;
+import org.demo.common.client.GatewayApiClient;
 import org.demo.common.common.CommonResponse;
 import org.demo.common.common.ResponseBuilder;
 import org.demo.common.common.UserHolder;
 import org.demo.common.dto.request.MerchantOrderListRequest;
 import org.demo.common.dto.request.OrderCreateRequest;
+import org.demo.common.dto.request.OrderDetailRequest;
 import org.demo.common.dto.request.OrderGrabRequest;
 import org.demo.common.dto.request.OrderStatusUpdateRequest;
 import org.demo.common.dto.request.RiderOrderHistoryQueryRequest;
 import org.demo.common.dto.request.UserCurrentOrderRequest;
 import org.demo.common.dto.request.UserOrderHistoryRequest;
+import org.demo.common.dto.response.OrderDetailResponse;
 import org.demo.common.dto.response.OrderResponse;
 import org.demo.common.pojo.Order;
 import org.demo.common.pojo.OrderItem;
@@ -41,6 +44,9 @@ public class OrderController {
 
     @Autowired
     private OrderService orderService;
+    
+    @Autowired
+    private GatewayApiClient gatewayApiClient;
 
     /**
      * 创建订单
@@ -410,7 +416,7 @@ public class OrderController {
     }
 
     /**
-     * 根据订单ID获取订单详情
+     * 根据订单ID获取订单详情（保留原有GET接口）
      * 
      * @param orderId 订单ID
      * @return CommonResponse 订单详情
@@ -443,5 +449,288 @@ public class OrderController {
         }
 
         return ResponseBuilder.ok(order);
+    }
+    
+    /**
+     * 获取订单详情（POST方式，支持请求体参数）
+     * 通过网关服务获取完整的订单详情信息，包括用户、商家、店铺、商品等相关信息
+     * 
+     * @param request 订单详情查询请求
+     * @return CommonResponse<OrderDetailResponse> 完整的订单详情
+     */
+    @PostMapping("/detail")
+    public CommonResponse getOrderDetail(@Valid @RequestBody OrderDetailRequest request) {
+        try {
+            // 参数验证
+            if (request == null || request.getOrderId() == null) {
+                return ResponseBuilder.fail("请求参数不能为空");
+            }
+            
+            // 获取基本订单信息
+            Order order = orderService.getOrderById(request.getOrderId());
+            if (order == null) {
+                return ResponseBuilder.fail("订单不存在");
+            }
+
+            // 权限检查：只有订单相关的用户、商家、骑手或管理员可以查看
+            Long currentUserId = UserHolder.getId();
+            String role = UserHolder.getRole();
+            String token = UserHolder.getToken();
+            
+            // 检查用户身份信息
+            if (currentUserId == null || role == null) {
+                return ResponseBuilder.fail("用户身份验证失败");
+            }
+            
+            if (!"admin".equals(role)) {
+                boolean hasPermission = false;
+                if ("user".equals(role) && order.getUserId() != null && order.getUserId().equals(currentUserId)) {
+                    hasPermission = true;
+                } else if ("rider".equals(role) && order.getRiderId() != null && order.getRiderId().equals(currentUserId)) {
+                    hasPermission = true;
+                } else if ("merchant".equals(role)) {
+                    // 通过网关API验证商家是否拥有该订单的店铺
+                    try {
+                        if (order.getStoreId() != null && token != null) {
+                            Map<String, Object> storeInfo = gatewayApiClient.getStoreById(order.getStoreId(), token);
+                            if (storeInfo != null && !storeInfo.isEmpty()) {
+                                Long merchantId = getLongValue(storeInfo.get("merchant_id"));
+                                hasPermission = merchantId != null && currentUserId.equals(merchantId);
+                            }
+                        }
+                    } catch (Exception e) {
+                        // 网关API调用失败时，记录日志但不影响权限验证
+                        System.err.println("验证商家权限时网关API调用失败: " + e.getMessage());
+                        // 对于商家角色，如果网关API调用失败，拒绝访问以确保安全
+                        hasPermission = false;
+                    }
+                }
+                
+                if (!hasPermission) {
+                    return ResponseBuilder.fail("无权限查看该订单");
+                }
+            }
+
+            // 构建详细响应
+            OrderDetailResponse response = buildOrderDetailResponse(order, request, token);
+            
+            return ResponseBuilder.ok("订单详情获取成功", response);
+            
+        } catch (Exception e) {
+            System.err.println("获取订单详情时发生异常: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseBuilder.fail("获取订单详情失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 构建订单详情响应
+     * 
+     * @param order 订单基本信息
+     * @param request 请求参数
+     * @param token JWT令牌
+     * @return OrderDetailResponse 完整的订单详情响应
+     */
+    private OrderDetailResponse buildOrderDetailResponse(Order order, OrderDetailRequest request, String token) {
+        OrderDetailResponse response = new OrderDetailResponse();
+        
+        try {
+            // 设置订单基本信息
+            response.setOrderId(order.getId());
+            response.setStatus(order.getStatus());
+            response.setUserLocation(order.getUserLocation());
+            response.setStoreLocation(order.getStoreLocation());
+            response.setTotalPrice(order.getTotalPrice());
+            response.setActualPrice(order.getActualPrice());
+            response.setDeliveryPrice(order.getDeliveryPrice());
+            response.setRemark(order.getRemark());
+            response.setCreatedAt(order.getCreatedAt());
+            response.setDeadline(order.getDeadline());
+            response.setEndedAt(order.getEndedAt());
+            
+
+            if (token != null) {
+                // 获取用户信息
+                if (order.getUserId() != null) {
+                    try {
+                        Map<String, Object> userInfo = gatewayApiClient.getUserById(order.getUserId(), token);
+                        if (userInfo != null && !userInfo.isEmpty()) {
+                            response.setUserId(order.getUserId());
+                            response.setUsername((String) userInfo.get("username"));
+                            response.setUserPhone((String) userInfo.get("phone"));
+                            response.setUserAvatar((String) userInfo.get("avatar"));
+                        } else {
+                            // 设置基本用户信息
+                            response.setUserId(order.getUserId());
+                        }
+                    } catch (Exception e) {
+                        System.err.println("获取用户信息失败: userId=" + order.getUserId() + ", error=" + e.getMessage());
+                        // 设置基本用户信息
+                        response.setUserId(order.getUserId());
+                    }
+                }
+                
+                // 获取店铺信息
+                if (order.getStoreId() != null) {
+                    try {
+                        Map<String, Object> storeInfo = gatewayApiClient.getStoreById(order.getStoreId(), token);
+                        if (storeInfo != null && !storeInfo.isEmpty()) {
+                            response.setStoreId(order.getStoreId());
+                            response.setStoreName((String) storeInfo.get("name"));
+                            response.setStoreDescription((String) storeInfo.get("description"));
+                            response.setStoreLocation((String) storeInfo.get("location"));
+                            response.setStoreType((String) storeInfo.get("type"));
+                            response.setStoreRating(getBigDecimalValue(storeInfo.get("rating")));
+                            response.setStoreImage((String) storeInfo.get("image"));
+                            
+                            // 获取商家信息
+                            Long merchantId = getLongValue(storeInfo.get("merchant_id"));
+                            if (merchantId != null) {
+                                try {
+                                    Map<String, Object> merchantInfo = gatewayApiClient.getMerchantById(merchantId, token);
+                                    if (merchantInfo != null && !merchantInfo.isEmpty()) {
+                                        response.setMerchantId(merchantId);
+                                        response.setMerchantName((String) merchantInfo.get("username"));
+                                        response.setMerchantPhone((String) merchantInfo.get("phone"));
+                                        response.setMerchantAvatar((String) merchantInfo.get("avatar"));
+                                    } else {
+                                        response.setMerchantId(merchantId);
+                                    }
+                                } catch (Exception e) {
+                                    System.err.println("获取商家信息失败: merchantId=" + merchantId + ", error=" + e.getMessage());
+                                    response.setMerchantId(merchantId);
+                                }
+                            }
+                        } else {
+                            // 设置基本店铺信息
+                            response.setStoreId(order.getStoreId());
+                        }
+                    } catch (Exception e) {
+                        System.err.println("获取店铺信息失败: storeId=" + order.getStoreId() + ", error=" + e.getMessage());
+                        // 设置基本店铺信息
+                        response.setStoreId(order.getStoreId());
+                    }
+                }
+                
+                // 获取骑手信息
+                if (order.getRiderId() != null) {
+                    try {
+                        Map<String, Object> riderInfo = gatewayApiClient.getRiderById(order.getRiderId(), token);
+                        if (riderInfo != null && !riderInfo.isEmpty()) {
+                            response.setRiderId(order.getRiderId());
+                            response.setRiderName((String) riderInfo.get("username"));
+                            response.setRiderPhone((String) riderInfo.get("phone"));
+                            response.setRiderAvatar((String) riderInfo.get("avatar"));
+                        } else {
+                            response.setRiderId(order.getRiderId());
+                        }
+                    } catch (Exception e) {
+                        System.err.println("获取骑手信息失败: riderId=" + order.getRiderId() + ", error=" + e.getMessage());
+                        response.setRiderId(order.getRiderId());
+                    }
+                }
+            }
+            
+            // 获取订单项详情
+            try {
+                List<OrderItem> orderItems = orderService.getOrderItems(order.getId());
+                if (orderItems != null && !orderItems.isEmpty()) {
+                    List<OrderDetailResponse.OrderItemDetail> itemDetails = orderItems.stream()
+                        .map(item -> {
+                            OrderDetailResponse.OrderItemDetail detail = new OrderDetailResponse.OrderItemDetail();
+
+                            try {
+                                detail.setProductId(item.getProductId());
+                                detail.setQuantity(item.getQuantity());
+                                detail.setPrice(item.getPrice());
+
+                                // 安全计算总价
+                                if (item.getPrice() != null && item.getQuantity() != null) {
+                                    detail.setTotalPrice(item.getPrice().multiply(java.math.BigDecimal.valueOf(item.getQuantity())));
+                                }
+
+                                // 获取商品详细信息
+                                if (item.getProductId() != null && token != null) {
+                                    try {
+                                        Map<String, Object> productInfo = gatewayApiClient.getProductById(item.getProductId(), token);
+                                        if (productInfo != null && !productInfo.isEmpty()) {
+                                            detail.setProductName((String) productInfo.get("name"));
+                                            detail.setProductDescription((String) productInfo.get("description"));
+                                            detail.setProductImage((String) productInfo.get("image"));
+                                            detail.setProductCategory((String) productInfo.get("category"));
+                                        }
+                                    } catch (Exception e) {
+                                        System.err.println("获取商品信息失败: productId=" + item.getProductId() + ", error=" + e.getMessage());
+                                    }
+                                }
+                            } catch (Exception e) {
+                                System.err.println("处理订单项失败: " + e.getMessage());
+                            }
+
+                            return detail;
+                        })
+                        .collect(java.util.stream.Collectors.toList());
+
+                    response.setOrderItems(itemDetails);
+                }
+
+                // 获取价格信息
+                try {
+                    Map<String, Object> priceInfo = orderService.getOrderPriceInfo(order.getId());
+                    response.setPriceInfo(priceInfo);
+                } catch (Exception e) {
+                    System.err.println("获取价格信息失败: orderId=" + order.getId() + ", error=" + e.getMessage());
+                }
+            } catch (Exception e) {
+                System.err.println("获取订单项详情失败: orderId=" + order.getId() + ", error=" + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            System.err.println("构建订单详情响应时发生异常: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return response;
+    }
+    
+    /**
+     * 安全地获取Long值
+     * 
+     * @param value 原始值
+     * @return Long值或null
+     */
+    private Long getLongValue(Object value) {
+        if (value == null) return null;
+        if (value instanceof Long) return (Long) value;
+        if (value instanceof Integer) return ((Integer) value).longValue();
+        if (value instanceof String) {
+            try {
+                return Long.parseLong((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * 安全地获取BigDecimal值
+     * 
+     * @param value 原始值
+     * @return BigDecimal值或null
+     */
+    private java.math.BigDecimal getBigDecimalValue(Object value) {
+        if (value == null) return null;
+        if (value instanceof java.math.BigDecimal) return (java.math.BigDecimal) value;
+        if (value instanceof Double) return java.math.BigDecimal.valueOf((Double) value);
+        if (value instanceof Float) return java.math.BigDecimal.valueOf((Float) value);
+        if (value instanceof String) {
+            try {
+                return new java.math.BigDecimal((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 }

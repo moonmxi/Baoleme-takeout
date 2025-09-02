@@ -20,16 +20,6 @@ import java.util.List;
 public class UserReviewResponse {
     
     /**
-     * 商品名称
-     */
-    private String productName;
-    
-    /**
-     * 店铺名称
-     */
-    private String storeName;
-    
-    /**
      * 评分
      */
     private int rating;

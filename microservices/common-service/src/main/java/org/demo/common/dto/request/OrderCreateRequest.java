@@ -8,6 +8,7 @@
  */
 package org.demo.common.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -27,12 +28,14 @@ public class OrderCreateRequest {
      * 店铺ID
      */
     @NotNull(message = "店铺ID不能为空")
+    @JsonProperty("store_id")
     private Long storeId;
 
     /**
      * 用户位置信息
      */
     @NotNull(message = "用户位置不能为空")
+    @JsonProperty("user_location")
     private String userLocation;
 
     /**
@@ -48,6 +51,7 @@ public class OrderCreateRequest {
     /**
      * 配送费
      */
+    @JsonProperty("delivery_price")
     private BigDecimal deliveryPrice;
     
     /**
@@ -71,6 +75,7 @@ public class OrderCreateRequest {
          * 商品ID
          */
         @NotNull(message = "商品ID不能为空")
+        @JsonProperty("product_id")
         private Long productId;
 
         /**
