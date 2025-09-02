@@ -52,6 +52,12 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+# 网关服务配置
+gateway:
+  service:
+    base-url: http://localhost:8080
+    timeout: 30
+
 # 日志配置
 logging:
   level:

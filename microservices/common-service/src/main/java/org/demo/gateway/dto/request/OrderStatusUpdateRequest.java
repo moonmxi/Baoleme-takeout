@@ -8,6 +8,7 @@
  */
 package org.demo.gateway.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -21,6 +22,7 @@ public class OrderStatusUpdateRequest {
     /**
      * 订单ID
      */
+    @JsonProperty("id")
     @NotNull(message = "订单ID不能为空")
     private Long orderId;
 
@@ -28,6 +30,7 @@ public class OrderStatusUpdateRequest {
      * 目标状态
      * 0：待接单  1：准备中  2：配送中  3：完成  4：取消
      */
+    @JsonProperty("new_status")
     @NotNull(message = "目标状态不能为空")
     private Integer targetStatus;
 

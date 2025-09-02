@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import org.demo.gateway.common.CommonResponse;
 import org.demo.gateway.common.ResponseBuilder;
 import org.demo.gateway.common.UserHolder;
+import org.demo.gateway.dto.request.MerchantOrderListRequest;
 import org.demo.gateway.dto.request.OrderCreateRequest;
 import org.demo.gateway.dto.request.OrderGrabRequest;
 import org.demo.gateway.dto.request.OrderStatusUpdateRequest;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -252,12 +254,15 @@ public class OrderController {
             return ResponseBuilder.fail("订单更新失败：权限不足或订单不存在");
         }
 
-        return ResponseBuilder.ok(Map.of(
-                "order_id", request.getOrderId(),
-                "new_status", request.getTargetStatus(),
-                "update_at", LocalDateTime.now(),
-                "cancel_reason", request.getCancelReason()
-        ));
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("order_id", request.getOrderId());
+        responseData.put("new_status", request.getTargetStatus());
+        responseData.put("update_at", LocalDateTime.now());
+        if (request.getCancelReason() != null) {
+            responseData.put("cancel_reason", request.getCancelReason());
+        }
+        
+        return ResponseBuilder.ok(responseData);
     }
 
     /**
@@ -294,6 +299,33 @@ public class OrderController {
                 "orders", orders,
                 "current_page", page,
                 "page_size", pageSize
+        ));
+    }
+
+    /**
+     * 商家查看店铺订单列表（POST方式，支持JSON请求体）
+     * 
+     * @param request 订单查询请求
+     * @return CommonResponse<List<Order>> 店铺订单列表
+     */
+    @PostMapping("/merchant-list")
+    public CommonResponse getOrdersByMerchantPost(@Valid @RequestBody MerchantOrderListRequest request) {
+        String role = UserHolder.getRole();
+        if (!"merchant".equals(role)) {
+            return ResponseBuilder.fail("无权限访问，仅商家可操作");
+        }
+
+        List<Order> orders;
+        if (request.getStatus() == null) {
+            orders = orderService.getOrdersByMerchant(request.getStoreId(), request.getPage(), request.getPageSize());
+        } else {
+            orders = orderService.getOrdersByMerchantAndStatus(request.getStoreId(), request.getStatus(), request.getPage(), request.getPageSize());
+        }
+
+        return ResponseBuilder.ok(Map.of(
+                "orders", orders,
+                "current_page", request.getPage(),
+                "page_size", request.getPageSize()
         ));
     }
 
