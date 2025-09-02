@@ -80,7 +80,7 @@
 1. **创建数据库**
 ```sql
 -- 执行数据库初始化脚本
-source src/main/resources/gateway-service.sql
+source src/main/resources/common-service.sql
 ```
 
 2. **配置连接信息**
@@ -89,7 +89,7 @@ source src/main/resources/gateway-service.sql
 spring:
   datasource:
     # 网关数据库（主数据源）
-    url: jdbc:mysql://localhost:3306/baoleme_gateway
+    url: jdbc:mysql://localhost:3306/baoleme_common
     username: root
     password: your_password
     
@@ -434,7 +434,7 @@ src/
 │   │           └── DatabaseServiceImpl.java  # 数据库服务实现
 │   └── resources/
 │       ├── application.yml                   # 配置文件
-│       └── gateway-service.sql               # 数据库初始化脚本
+│       └── common-service.sql               # 数据库初始化脚本
 └── test/
     └── java/                                 # 测试代码
 ```
@@ -451,13 +451,12 @@ spring:
   
   # 主数据源（网关数据库）
   datasource:
-    url: jdbc:mysql://localhost:3306/baoleme_gateway
+    url: jdbc:mysql://localhost:3306/baoleme_common
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
     
   # 多数据源配置
-  datasource:
     user:
       jdbc-url: jdbc:mysql://localhost:3306/baoleme_user
       username: root

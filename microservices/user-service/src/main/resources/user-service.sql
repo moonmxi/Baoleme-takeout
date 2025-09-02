@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS favorite (
     user_id BIGINT NOT NULL,
     product_id BIGINT,
     store_id BIGINT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, store_id)
 );
 
 -- 十五、浏览记录表
