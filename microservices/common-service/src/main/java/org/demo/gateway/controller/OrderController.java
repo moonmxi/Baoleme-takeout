@@ -330,7 +330,7 @@ public class OrderController {
      * @param pageSize 每页大小
      * @return CommonResponse 当前订单列表
      */
-    @GetMapping("/user-current")
+    @PostMapping("/user-current")
     public CommonResponse getUserCurrentOrders(@RequestParam("page") int page,
                                               @RequestParam("page_size") int pageSize) {
         String role = UserHolder.getRole();

@@ -3,7 +3,7 @@
 # 主要负责订单和消息相关功能
 
 server:
-  port: 8080
+  port: 8085
 
 spring:
   application:
