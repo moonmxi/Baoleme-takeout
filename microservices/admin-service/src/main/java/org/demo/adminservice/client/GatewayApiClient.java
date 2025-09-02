@@ -457,6 +457,80 @@ public class GatewayApiClient {
     }
 
     /**
+     * 带过滤条件的店铺搜索
+     * 
+     * @param keyword 搜索关键词
+     * @param distance 距离范围
+     * @param wishPrice 期望价格
+     * @param startRating 最低评分
+     * @param endRating 最高评分
+     * @param page 页码
+     * @param pageSize 每页大小
+     * @param token JWT令牌
+     * @return 搜索结果列表
+     */
+    public List<Map<String, Object>> searchStoreWithFilters(String keyword, java.math.BigDecimal distance, 
+                                                           java.math.BigDecimal wishPrice, java.math.BigDecimal startRating, 
+                                                           java.math.BigDecimal endRating, int page, 
+                                                           int pageSize, String token) {
+        try {
+            log.info("调用网关API带过滤条件搜索店铺: keyword={}, page={}, pageSize={}", keyword, page, pageSize);
+
+            // 构建查询条件
+            Map<String, Object> conditions = new HashMap<>();
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                conditions.put("name_like", keyword);
+            }
+            if (distance != null) {
+                conditions.put("distance", distance);
+            }
+            if (wishPrice != null) {
+                conditions.put("avg_price", wishPrice);
+            }
+            if (startRating != null) {
+                conditions.put("rating_gte", startRating);
+            }
+            if (endRating != null) {
+                conditions.put("rating_lte", endRating);
+            }
+            
+            Map<String, Object> requestBody = new HashMap<>();
+            if (!conditions.isEmpty()) {
+                requestBody.put("condition", conditions);
+            }
+
+            String url = gatewayBaseUrl + "/api/database/store/page?page=" + page + "&pageSize=" + pageSize;
+            
+            Map<String, Object> response = webClient.post()
+                    .uri(url)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                    .timeout(Duration.ofSeconds(requestTimeout))
+                    .block();
+            
+            if (response != null && Boolean.TRUE.equals(response.get("success"))) {
+                Map<String, Object> data = (Map<String, Object>) response.get("data");
+                if (data != null) {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> records = (List<Map<String, Object>>) data.get("records");
+                    log.info("成功获取搜索店铺列表，共{}条记录", records != null ? records.size() : 0);
+                    return records != null ? records : new ArrayList<>();
+                }
+            }
+            
+            log.warn("网关API返回空结果或失败: {}", response);
+            return new ArrayList<>();
+            
+        } catch (Exception e) {
+            log.error("调用网关API搜索店铺失败", e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
      * 根据ID获取订单详情
      */
     public Map<String, Object> getOrderById(Long orderId, String token) {
