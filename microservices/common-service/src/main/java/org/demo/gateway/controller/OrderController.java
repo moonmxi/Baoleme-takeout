@@ -18,6 +18,7 @@ import org.demo.gateway.dto.request.OrderGrabRequest;
 import org.demo.gateway.dto.request.OrderStatusUpdateRequest;
 import org.demo.gateway.dto.request.RiderOrderHistoryQueryRequest;
 import org.demo.gateway.dto.request.UserCurrentOrderRequest;
+import org.demo.gateway.dto.request.UserOrderHistoryRequest;
 import org.demo.gateway.dto.response.OrderResponse;
 import org.demo.gateway.pojo.Order;
 import org.demo.gateway.pojo.OrderItem;
@@ -333,26 +334,18 @@ public class OrderController {
     /**
      * 用户查看订单历史（支持条件筛选）
      * 
-     * @param status 订单状态（可选）
-     * @param startTime 开始时间（可选）
-     * @param endTime 结束时间（可选）
-     * @param page 页码
-     * @param pageSize 每页大小
+     * @param request 用户订单历史查询请求
      * @return CommonResponse<List<Order>> 用户订单列表
      */
-    @GetMapping("/user-history")
-    public CommonResponse getUserOrders(@RequestParam(value = "status", required = false) Integer status,
-                                       @RequestParam(value = "start_time", required = false) String startTime,
-                                       @RequestParam(value = "end_time", required = false) String endTime,
-                                       @RequestParam("page") int page,
-                                       @RequestParam("page_size") int pageSize) {
+    @PostMapping("/user-history")
+    public CommonResponse getUserOrders(@Valid @RequestBody UserOrderHistoryRequest request) {
         String role = UserHolder.getRole();
         if (!"user".equals(role)) {
             return ResponseBuilder.fail("无权限访问，仅用户可操作");
         }
 
         Long userId = UserHolder.getId();
-        List<Order> orders = orderService.getUserOrdersWithFilter(userId, status, startTime, endTime, page, pageSize);
+        List<Order> orders = orderService.getUserOrdersWithFilter(userId, request.getStatus(), request.getStartTime(), request.getEndTime(), request.getPage(), request.getPageSize());
         return ResponseBuilder.ok(Map.of("orders", orders));
     }
 

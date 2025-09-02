@@ -13,8 +13,10 @@ import org.demo.gateway.common.UserHolder;
 import org.demo.gateway.dto.request.OrderCreateRequest;
 import org.demo.gateway.dto.response.OrderResponse;
 import org.demo.gateway.mapper.OrderMapper;
+import org.demo.gateway.pojo.Coupon;
 import org.demo.gateway.pojo.Order;
 import org.demo.gateway.pojo.OrderItem;
+import org.demo.gateway.service.CouponService;
 import org.demo.gateway.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,9 @@ public class OrderServiceImpl implements OrderService {
     
     @Autowired
     private GatewayApiClient gatewayApiClient;
+    
+    @Autowired
+    private CouponService couponService;
 
     /**
      * 创建订单
@@ -93,8 +98,37 @@ public class OrderServiceImpl implements OrderService {
 
         // 计算订单总价
         BigDecimal totalPrice = calculateTotalPrice(request.getItems());
-        BigDecimal deliveryPrice = new BigDecimal("5.00"); // 固定配送费
-        BigDecimal actualPrice = totalPrice.add(deliveryPrice);
+        BigDecimal deliveryPrice = request.getDeliveryPrice() != null ? request.getDeliveryPrice() : new BigDecimal("5.00");
+        
+        // 处理优惠券
+        BigDecimal discountedPrice = totalPrice;
+        Coupon coupon = null;
+        if (request.getCouponId() != null) {
+            coupon = couponService.getCouponById(request.getCouponId());
+            if (coupon == null) {
+                throw new Exception("优惠券不存在");
+            }
+            
+            // 验证优惠券是否有效
+            if (!coupon.isValid()) {
+                throw new Exception("优惠券已过期或已使用");
+            }
+            
+            // 验证优惠券是否属于当前用户
+            if (coupon.getUserId() != null && !coupon.getUserId().equals(userId)) {
+                throw new Exception("优惠券不属于当前用户");
+            }
+            
+            // 验证优惠券是否适用于当前店铺
+            if (coupon.getStoreId() != null && !coupon.getStoreId().equals(request.getStoreId())) {
+                throw new Exception("优惠券不适用于当前店铺");
+            }
+            
+            // 应用优惠券折扣
+            discountedPrice = coupon.applyDiscount(totalPrice);
+        }
+        
+        BigDecimal actualPrice = discountedPrice.add(deliveryPrice);
 
         // 创建订单
         Order order = new Order();
@@ -108,7 +142,7 @@ public class OrderServiceImpl implements OrderService {
         order.setDeliveryPrice(deliveryPrice);
         order.setRemark(request.getRemark());
         order.setCreatedAt(LocalDateTime.now());
-        order.setDeadline(LocalDateTime.now().plusHours(2)); // 2小时后过期
+        order.setDeadline(request.getDeadline() != null ? request.getDeadline() : LocalDateTime.now().plusHours(2));
 
         // 插入订单
         orderMapper.insert(order);
@@ -119,9 +153,12 @@ public class OrderServiceImpl implements OrderService {
             orderItem.setOrderId(order.getId());
             orderItem.setProductId(item.getProductId());
             orderItem.setQuantity(item.getQuantity());
-            orderItem.setPrice(item.getPrice());
-            orderItem.setProductName(item.getProductName());
             orderMapper.insertOrderItem(orderItem);
+        }
+        
+        // 标记优惠券为已使用
+        if (coupon != null) {
+            couponService.markCouponAsUsed(coupon.getId());
         }
 
         // 构建响应
