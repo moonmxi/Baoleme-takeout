@@ -236,9 +236,8 @@ public class ForwardService {
      * @throws IOException IO异常
      */
     private String readRequestBody(HttpServletRequest request) throws IOException {
-        if ("GET".equalsIgnoreCase(request.getMethod()) || 
-            "DELETE".equalsIgnoreCase(request.getMethod()) ||
-            "HEAD".equalsIgnoreCase(request.getMethod()) ||
+        // 只有这些方法通常不包含请求体
+        if ("HEAD".equalsIgnoreCase(request.getMethod()) ||
             "OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return null;
         }

@@ -60,7 +60,6 @@ management:
   metrics:
     export:
       prometheus:
-        enabled: true
 
 # 微服务路由配置
 gateway:
@@ -141,6 +140,16 @@ gateway:
       
       # 通知服务路由
       - path: "/notification/**"
+        service: common-service
+        strip-prefix: false
+      
+      # 评论服务路由
+      - path: "/reviews/**"
+        service: common-service
+        strip-prefix: false
+      
+      # 优惠券服务路由
+      - path: "/coupons/**"
         service: common-service
         strip-prefix: false
       
