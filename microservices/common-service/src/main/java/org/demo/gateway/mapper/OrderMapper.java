@@ -9,6 +9,7 @@
 package org.demo.gateway.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -178,6 +179,8 @@ public interface OrderMapper extends BaseMapper<Order> {
      * @param orderItem 订单项
      * @return int 影响行数
      */
+    @Insert("INSERT INTO order_item (order_id, product_id, quantity) " +
+            "VALUES (#{orderId}, #{productId}, #{quantity})")
     int insertOrderItem(OrderItem orderItem);
 
     /**

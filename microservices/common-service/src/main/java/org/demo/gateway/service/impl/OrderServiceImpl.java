@@ -8,11 +8,15 @@
  */
 package org.demo.gateway.service.impl;
 
+import org.demo.gateway.client.GatewayApiClient;
+import org.demo.gateway.common.UserHolder;
 import org.demo.gateway.dto.request.OrderCreateRequest;
 import org.demo.gateway.dto.response.OrderResponse;
 import org.demo.gateway.mapper.OrderMapper;
+import org.demo.gateway.pojo.Coupon;
 import org.demo.gateway.pojo.Order;
 import org.demo.gateway.pojo.OrderItem;
+import org.demo.gateway.service.CouponService;
 import org.demo.gateway.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -33,6 +37,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private OrderMapper orderMapper;
+    
+    @Autowired
+    private GatewayApiClient gatewayApiClient;
+    
+    @Autowired
+    private CouponService couponService;
 
     /**
      * 创建订单
@@ -50,10 +60,75 @@ public class OrderServiceImpl implements OrderService {
             throw new Exception("店铺不存在或已停业");
         }
 
+        // 获取JWT token用于调用网关API
+        String token = UserHolder.getToken();
+        if (token == null) {
+            throw new Exception("用户未登录或token无效");
+        }
+
+        // 补充订单项的商品信息（价格和名称）
+        for (OrderCreateRequest.CartItemDTO item : request.getItems()) {
+            if (item.getPrice() == null || item.getProductName() == null) {
+                Map<String, Object> productInfo = gatewayApiClient.getProductById(item.getProductId(), token);
+                if (productInfo.isEmpty()) {
+                    throw new Exception("商品不存在: " + item.getProductId());
+                }
+                
+                // 设置商品价格
+                if (item.getPrice() == null) {
+                    Object priceObj = productInfo.get("price");
+                    if (priceObj != null) {
+                        item.setPrice(new BigDecimal(priceObj.toString()));
+                    } else {
+                        throw new Exception("商品价格信息缺失: " + item.getProductId());
+                    }
+                }
+                
+                // 设置商品名称
+                if (item.getProductName() == null) {
+                    String productName = (String) productInfo.get("name");
+                    if (productName != null) {
+                        item.setProductName(productName);
+                    } else {
+                        throw new Exception("商品名称信息缺失: " + item.getProductId());
+                    }
+                }
+            }
+        }
+
         // 计算订单总价
         BigDecimal totalPrice = calculateTotalPrice(request.getItems());
-        BigDecimal deliveryPrice = new BigDecimal("5.00"); // 固定配送费
-        BigDecimal actualPrice = totalPrice.add(deliveryPrice);
+        BigDecimal deliveryPrice = request.getDeliveryPrice() != null ? request.getDeliveryPrice() : new BigDecimal("5.00");
+        
+        // 处理优惠券
+        BigDecimal discountedPrice = totalPrice;
+        Coupon coupon = null;
+        if (request.getCouponId() != null) {
+            coupon = couponService.getCouponById(request.getCouponId());
+            if (coupon == null) {
+                throw new Exception("优惠券不存在");
+            }
+            
+            // 验证优惠券是否有效
+            if (!coupon.isValid()) {
+                throw new Exception("优惠券已过期或已使用");
+            }
+            
+            // 验证优惠券是否属于当前用户
+            if (coupon.getUserId() != null && !coupon.getUserId().equals(userId)) {
+                throw new Exception("优惠券不属于当前用户");
+            }
+            
+            // 验证优惠券是否适用于当前店铺
+            if (coupon.getStoreId() != null && !coupon.getStoreId().equals(request.getStoreId())) {
+                throw new Exception("优惠券不适用于当前店铺");
+            }
+            
+            // 应用优惠券折扣
+            discountedPrice = coupon.applyDiscount(totalPrice);
+        }
+        
+        BigDecimal actualPrice = discountedPrice.add(deliveryPrice);
 
         // 创建订单
         Order order = new Order();
@@ -67,7 +142,7 @@ public class OrderServiceImpl implements OrderService {
         order.setDeliveryPrice(deliveryPrice);
         order.setRemark(request.getRemark());
         order.setCreatedAt(LocalDateTime.now());
-        order.setDeadline(LocalDateTime.now().plusHours(2)); // 2小时后过期
+        order.setDeadline(request.getDeadline() != null ? request.getDeadline() : LocalDateTime.now().plusHours(2));
 
         // 插入订单
         orderMapper.insert(order);
@@ -78,9 +153,12 @@ public class OrderServiceImpl implements OrderService {
             orderItem.setOrderId(order.getId());
             orderItem.setProductId(item.getProductId());
             orderItem.setQuantity(item.getQuantity());
-            orderItem.setPrice(item.getPrice());
-            orderItem.setProductName(item.getProductName());
             orderMapper.insertOrderItem(orderItem);
+        }
+        
+        // 标记优惠券为已使用
+        if (coupon != null) {
+            couponService.markCouponAsUsed(coupon.getId());
         }
 
         // 构建响应

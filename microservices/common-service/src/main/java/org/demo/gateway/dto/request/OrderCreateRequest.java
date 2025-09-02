@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -38,6 +39,21 @@ public class OrderCreateRequest {
      * 订单备注
      */
     private String remark;
+    
+    /**
+     * 优惠券ID（可选）
+     */
+    private Long couponId;
+    
+    /**
+     * 配送费
+     */
+    private BigDecimal deliveryPrice;
+    
+    /**
+     * 订单截止时间
+     */
+    private LocalDateTime deadline;
 
     /**
      * 订单项列表

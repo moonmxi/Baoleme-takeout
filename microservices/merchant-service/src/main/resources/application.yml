@@ -12,7 +12,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/baoleme_merchant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
-    password: wqy20050308
+    password: 88159918
     driver-class-name: com.mysql.cj.jdbc.Driver
     
   # Redis配置
@@ -50,6 +50,12 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+
+# 网关服务配置
+gateway:
+  service:
+    base-url: http://localhost:8080
+    timeout: 30
 
 # 日志配置
 logging:
