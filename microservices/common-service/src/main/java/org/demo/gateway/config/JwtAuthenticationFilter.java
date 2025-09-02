@@ -72,7 +72,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (idNumber != null && role != null) {
                     // 临时跳过Redis验证，直接使用JWT信息
                     Long userId = idNumber.longValue();
-                    UserHolder.set(userId, role);
+                    UserHolder.set(userId, role, token);
                     
                     // 设置Spring Security认证信息
                     UsernamePasswordAuthenticationToken authentication = 

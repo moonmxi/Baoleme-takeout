@@ -23,6 +23,11 @@ public class UserHolder {
      * 存储用户角色的ThreadLocal
      */
     private static final ThreadLocal<String> roleHolder = new ThreadLocal<>();
+    
+    /**
+     * 存储JWT token的ThreadLocal
+     */
+    private static final ThreadLocal<String> tokenHolder = new ThreadLocal<>();
 
     /**
      * 设置当前用户信息
@@ -33,6 +38,19 @@ public class UserHolder {
     public static void set(Long id, String role) {
         idHolder.set(id);
         roleHolder.set(role);
+    }
+    
+    /**
+     * 设置当前用户信息（包含token）
+     * 
+     * @param id 用户ID
+     * @param role 用户角色
+     * @param token JWT token
+     */
+    public static void set(Long id, String role, String token) {
+        idHolder.set(id);
+        roleHolder.set(role);
+        tokenHolder.set(token);
     }
 
     /**
@@ -52,6 +70,15 @@ public class UserHolder {
     public static String getRole() {
         return roleHolder.get();
     }
+    
+    /**
+     * 获取当前JWT token
+     * 
+     * @return JWT token
+     */
+    public static String getToken() {
+        return tokenHolder.get();
+    }
 
     /**
      * 清除当前用户信息
@@ -59,5 +86,6 @@ public class UserHolder {
     public static void clear() {
         idHolder.remove();
         roleHolder.remove();
+        tokenHolder.remove();
     }
 }

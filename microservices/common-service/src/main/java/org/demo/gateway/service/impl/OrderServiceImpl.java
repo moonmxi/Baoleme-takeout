@@ -8,6 +8,8 @@
  */
 package org.demo.gateway.service.impl;
 
+import org.demo.gateway.client.GatewayApiClient;
+import org.demo.gateway.common.UserHolder;
 import org.demo.gateway.dto.request.OrderCreateRequest;
 import org.demo.gateway.dto.response.OrderResponse;
 import org.demo.gateway.mapper.OrderMapper;
@@ -33,6 +35,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private OrderMapper orderMapper;
+    
+    @Autowired
+    private GatewayApiClient gatewayApiClient;
 
     /**
      * 创建订单
@@ -48,6 +53,42 @@ public class OrderServiceImpl implements OrderService {
         // 验证店铺是否存在且营业
         if (!validateStore(request.getStoreId())) {
             throw new Exception("店铺不存在或已停业");
+        }
+
+        // 获取JWT token用于调用网关API
+        String token = UserHolder.getToken();
+        if (token == null) {
+            throw new Exception("用户未登录或token无效");
+        }
+
+        // 补充订单项的商品信息（价格和名称）
+        for (OrderCreateRequest.CartItemDTO item : request.getItems()) {
+            if (item.getPrice() == null || item.getProductName() == null) {
+                Map<String, Object> productInfo = gatewayApiClient.getProductById(item.getProductId(), token);
+                if (productInfo.isEmpty()) {
+                    throw new Exception("商品不存在: " + item.getProductId());
+                }
+                
+                // 设置商品价格
+                if (item.getPrice() == null) {
+                    Object priceObj = productInfo.get("price");
+                    if (priceObj != null) {
+                        item.setPrice(new BigDecimal(priceObj.toString()));
+                    } else {
+                        throw new Exception("商品价格信息缺失: " + item.getProductId());
+                    }
+                }
+                
+                // 设置商品名称
+                if (item.getProductName() == null) {
+                    String productName = (String) productInfo.get("name");
+                    if (productName != null) {
+                        item.setProductName(productName);
+                    } else {
+                        throw new Exception("商品名称信息缺失: " + item.getProductId());
+                    }
+                }
+            }
         }
 
         // 计算订单总价
