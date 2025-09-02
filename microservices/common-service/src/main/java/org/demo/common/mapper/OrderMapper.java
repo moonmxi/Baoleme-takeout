@@ -28,13 +28,13 @@ import java.util.List;
 public interface OrderMapper extends BaseMapper<Order> {
 
     /**
-     * 获取可抢订单列表（状态为待接单）
+     * 获取可抢订单列表（状态为待接单且未分配骑手）
      * 
      * @param offset 偏移量
      * @param limit 限制数量
      * @return List<Order> 可抢订单列表
      */
-    @Select("SELECT * FROM `order` WHERE status = 0 ORDER BY created_at ASC LIMIT #{offset}, #{limit}")
+    @Select("SELECT * FROM `order` WHERE status = 0 AND rider_id IS NULL ORDER BY created_at ASC LIMIT #{offset}, #{limit}")
     List<Order> getAvailableOrders(@Param("offset") int offset, @Param("limit") int limit);
 
     /**
