@@ -17,6 +17,7 @@ import org.demo.gateway.dto.request.OrderCreateRequest;
 import org.demo.gateway.dto.request.OrderGrabRequest;
 import org.demo.gateway.dto.request.OrderStatusUpdateRequest;
 import org.demo.gateway.dto.request.RiderOrderHistoryQueryRequest;
+import org.demo.gateway.dto.request.UserCurrentOrderRequest;
 import org.demo.gateway.dto.response.OrderResponse;
 import org.demo.gateway.pojo.Order;
 import org.demo.gateway.pojo.OrderItem;
@@ -358,13 +359,11 @@ public class OrderController {
     /**
      * 用户查看当前订单（进行中的订单）
      * 
-     * @param page 页码
-     * @param pageSize 每页大小
+     * @param request 用户当前订单查询请求
      * @return CommonResponse 当前订单列表
      */
-    @GetMapping("/user-current")
-    public CommonResponse getUserCurrentOrders(@RequestParam("page") int page,
-                                              @RequestParam("page_size") int pageSize) {
+    @PostMapping("/user-current")
+    public CommonResponse getUserCurrentOrders(@Valid @RequestBody UserCurrentOrderRequest request) {
         String role = UserHolder.getRole();
         if (!"user".equals(role)) {
             return ResponseBuilder.fail("无权限访问，仅用户可操作");
@@ -372,7 +371,7 @@ public class OrderController {
 
         Long userId = UserHolder.getId();
         // 查询状态为0,1,2的订单（待接单、准备中、配送中）
-        List<Order> orders = orderService.getUserCurrentOrders(userId, page, pageSize);
+        List<Order> orders = orderService.getUserCurrentOrders(userId, request.getPage(), request.getPageSize());
         return ResponseBuilder.ok(Map.of("orders", orders));
     }
 

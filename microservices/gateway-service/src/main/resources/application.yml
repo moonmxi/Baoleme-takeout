@@ -9,25 +9,27 @@ spring:
     name: order-service
 
 
-  # 数据库配置 - 订单服务独立数据库
+  # 数据库配置 - 网关服务多数据源配置
   datasource:
-    jdbc-url: jdbc:mysql://localhost:3306/baoleme_common?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: root
-    password: wqy20050308
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      pool-name: CommonHikariPool
-      maximum-pool-size: 10
-      minimum-idle: 3
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
+    # 主数据源（common数据库）
+    primary:
+      jdbc-url: jdbc:mysql://localhost:3306/baoleme_common?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      username: root
+      password: 88159918
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: CommonHikariPool
+        maximum-pool-size: 10
+        minimum-idle: 3
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
 
     # 用户数据库
     user:
       jdbc-url: jdbc:mysql://localhost:3306/baoleme_user?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
       username: root
-      password: wqy20050308
+      password: 88159918
       driver-class-name: com.mysql.cj.jdbc.Driver
       hikari:
         pool-name: UserHikariPool
@@ -41,7 +43,7 @@ spring:
     merchant:
       jdbc-url: jdbc:mysql://localhost:3306/baoleme_merchant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
       username: root
-      password: wqy20050308
+      password: 88159918
       driver-class-name: com.mysql.cj.jdbc.Driver
       hikari:
         pool-name: MerchantHikariPool
@@ -55,7 +57,7 @@ spring:
     rider:
       jdbc-url: jdbc:mysql://localhost:3306/baoleme_rider?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
       username: root
-      password: wqy20050308
+      password: 88159918
       driver-class-name: com.mysql.cj.jdbc.Driver
       hikari:
         pool-name: RiderHikariPool
@@ -69,7 +71,7 @@ spring:
     admin:
       jdbc-url: jdbc:mysql://localhost:3306/baoleme_admin?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
       username: root
-      password: wqy20050308
+      password: 88159918
       driver-class-name: com.mysql.cj.jdbc.Driver
       hikari:
         pool-name: AdminHikariPool
