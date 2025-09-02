@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -625,9 +626,10 @@ public class AdminController {
 
     /**
      * 管理员搜索店铺和商品
-     * 通过网关API调用商家微服务获取数据
+     * 通过网关API调用商家微服务获取数据，与用户搜索逻辑保持一致
      * 
      * @param request 搜索请求对象
+     * @param tokenHeader Authorization头部信息
      * @return CommonResponse 搜索结果响应
      */
     @PostMapping("/search")
@@ -637,95 +639,86 @@ public class AdminController {
             return ResponseBuilder.fail("无权限访问，仅管理员可操作");
         }
 
-        String keyword = request.getKeyWord();
+        String keyword = request.getKeyword();
+        BigDecimal distance = request.getDistance();
+        BigDecimal wishPrice = request.getWishPrice();
+        BigDecimal startRating = request.getStartRating();
+        BigDecimal endRating = request.getEndRating();
+        Integer page = request.getPage();
+        Integer pageSize = request.getPageSize();
+        
+        log.info("管理员搜索店铺和商品: keyword={}, distance={}, wishPrice={}, startRating={}, endRating={}, page={}, pageSize={}", 
+                keyword, distance, wishPrice, startRating, endRating, page, pageSize);
+        
         if (keyword == null || keyword.trim().isEmpty()) {
             return ResponseBuilder.fail("关键词不能为空");
         }
-
+        
         try {
             String token = tokenHeader.replace("Bearer ", "");
             
-            log.info("管理员搜索店铺和商品: keyword={}", keyword);
-            
-            List<Map<String, Object>> raw = gatewayApiClient.searchStoreAndProduct(keyword.trim(), token);
+            // 调用网关API进行搜索，传递所有搜索参数
+            List<Map<String, Object>> searchResults = gatewayApiClient.searchStoreWithFilters(
+                    keyword.trim(),
+                    distance,
+                    wishPrice,
+                    startRating,
+                    endRating,
+                    page,
+                    pageSize,
+                    token
+            );
 
-            List<AdminSearchResponse> responses = raw.stream().map(item -> {
-                AdminSearchResponse resp = new AdminSearchResponse();
-                Object storeIdObj = item.get("store_id");
-                if (storeIdObj != null) resp.setStoreId(((Number) storeIdObj).longValue());
-                resp.setStoreName((String) item.get("store_name"));
-                @SuppressWarnings("unchecked")
-                Map<String, Long> products = (Map<String, Long>) item.get("products");
-                resp.setProducts(products);
-                return resp;
-            }).collect(Collectors.toList());
+            // 处理搜索结果
+            List<AdminSearchResponse> responses = new ArrayList<>();
 
-            log.info("搜索完成，共{}条结果", responses.size());
+            if (searchResults != null && !searchResults.isEmpty()) {
+                responses = searchResults.stream().map(store -> {
+                     AdminSearchResponse response = new AdminSearchResponse();
+                     response.setStoreId(((Number) store.get("id")).longValue());
+                     response.setName((String) store.get("name"));
+                     response.setType((String) store.get("type"));
+                     response.setDescription((String) store.get("description"));
+                     response.setLocation((String) store.get("location"));
+                    // 修复rating字段类型转换
+                    Object ratingObj = store.get("rating");
+                    if (ratingObj != null) {
+                        if (ratingObj instanceof BigDecimal) {
+                            response.setRating((BigDecimal) ratingObj);
+                        } else if (ratingObj instanceof Double) {
+                            response.setRating(BigDecimal.valueOf((Double) ratingObj));
+                        } else if (ratingObj instanceof Number) {
+                            response.setRating(BigDecimal.valueOf(((Number) ratingObj).doubleValue()));
+                        }
+                    }
+                     response.setStatus((Integer) store.get("status"));
+                     response.setImage((String) store.get("image"));
+                    // 修复created_at字段类型转换
+                    Object createdAtObj = store.get("created_at");
+                    if (createdAtObj != null) {
+                        if (createdAtObj instanceof LocalDateTime) {
+                            response.setCreatedAt((LocalDateTime) createdAtObj);
+                        } else if (createdAtObj instanceof String) {
+                            try {
+                                response.setCreatedAt(LocalDateTime.parse((String) createdAtObj));
+                            } catch (Exception e) {
+                                try {
+                                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                                    response.setCreatedAt(LocalDateTime.parse((String) createdAtObj, formatter));
+                                } catch (Exception ex) {
+                                    log.warn("无法解析日期字符串: {}", createdAtObj, ex);
+                                }
+                            }
+                        }
+                    }
+                     return response;
+                 }).collect(Collectors.toList());
+            }
+            log.info("成功获取搜索店铺列表，共{}条记录", responses.size());
             return ResponseBuilder.ok(Map.of("results", responses));
-            
         } catch (Exception e) {
             log.error("搜索失败", e);
             return ResponseBuilder.fail("搜索失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 根据订单ID搜索订单
-     * 通过网关API调用网关微服务获取数据
-     * 
-     * @param request 订单搜索请求对象
-     * @return CommonResponse 订单搜索结果
-     */
-    @PostMapping("/search-order-by-id")
-    public CommonResponse searchOrderById(@Valid @RequestBody AdminSearchOrderByIdRequest request, @RequestHeader("Authorization") String tokenHeader) {
-        String role = UserHolder.getRole();
-        if (!"admin".equals(role)) {
-            return ResponseBuilder.fail("无权限访问，仅管理员可操作");
-        }
-        
-        try {
-            String token = tokenHeader.replace("Bearer ", "");
-            
-            log.info("管理员根据ID搜索订单: orderId={}", request.getOrderId());
-            
-            Map<String, Object> order = gatewayApiClient.getOrderById(request.getOrderId(), token);
-            
-            log.info("订单搜索完成");
-            return ResponseBuilder.ok(Map.of("order", order));
-            
-        } catch (Exception e) {
-            log.error("订单搜索失败", e);
-            return ResponseBuilder.fail("订单搜索失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 根据评论ID搜索评论
-     * 通过网关API调用网关微服务获取数据
-     * 
-     * @param request 评论搜索请求对象
-     * @return CommonResponse 评论搜索结果
-     */
-    @PostMapping("/search-review-by-id")
-    public CommonResponse searchReviewById(@Valid @RequestBody AdminSearchReviewByIdRequest request, @RequestHeader("Authorization") String tokenHeader) {
-        String role = UserHolder.getRole();
-        if (!"admin".equals(role)) {
-            return ResponseBuilder.fail("无权限访问，仅管理员可操作");
-        }
-        
-        try {
-            String token = tokenHeader.replace("Bearer ", "");
-            
-            log.info("管理员根据ID搜索评论: reviewId={}", request.getReviewId());
-            
-            Map<String, Object> review = gatewayApiClient.getReviewById(request.getReviewId(), token);
-            
-            log.info("评论搜索完成");
-            return ResponseBuilder.ok(Map.of("review", review));
-            
-        } catch (Exception e) {
-            log.error("评论搜索失败", e);
-            return ResponseBuilder.fail("评论搜索失败: " + e.getMessage());
         }
     }
 }
