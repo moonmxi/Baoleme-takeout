@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.demo.baoleme.common.UserHolder;
 import org.demo.baoleme.common.JwtUtils;
 import org.demo.baoleme.dto.request.order.*;
+import org.demo.baoleme.dto.request.rider.RiderOrderHistoryQueryRequest;
 import org.demo.baoleme.dto.response.order.*;
 import org.demo.baoleme.pojo.Order;
 import org.demo.baoleme.pojo.Store;
@@ -171,7 +172,9 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
             // 执行测试
-            mockMvc.perform(get("/orders/available"))
+            mockMvc.perform(get("/orders/available")
+                            .param("page", "1")
+                            .param("page_size", "10"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(200))
                     .andExpect(jsonPath("$.data.orders").isArray())
@@ -180,7 +183,7 @@ class OrderControllerTest {
         }
 
         // 验证Mock调用
-        verify(orderService, times(1)).getAvailableOrders(anyInt(), anyInt());
+        verify(orderService, times(1)).getAvailableOrders(1, 10);
     }
 
     /**
@@ -203,7 +206,9 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非骑手角色
 
             // 执行测试
-            mockMvc.perform(get("/orders/available"))
+            mockMvc.perform(get("/orders/available")
+                            .param("page", "1")
+                            .param("page_size", "10"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(400))
                     .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
@@ -237,14 +242,16 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
             // 执行测试
-            mockMvc.perform(get("/orders/available"))
+            mockMvc.perform(get("/orders/available")
+                            .param("page", "1")
+                            .param("page_size", "10"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(400))
                     .andExpect(jsonPath("$.message").value("获取可用订单失败：数据库连接失败"));
         }
 
         // 验证Mock调用
-        verify(orderService, times(1)).getAvailableOrders(anyInt(), anyInt());
+        verify(orderService, times(1)).getAvailableOrders(1, 10);
     }
 
     // ==================== 抢单接口测试 ====================
@@ -276,12 +283,12 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
             // 执行测试
-            mockMvc.perform(post("/orders/grab")
+            mockMvc.perform(put("/orders/grab")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.message").value("抢单成功"));
+                    .andExpect(jsonPath("$.data.orderId").value(orderId));
         }
 
         // 验证Mock调用
@@ -315,12 +322,12 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
             // 执行测试
-            mockMvc.perform(post("/orders/grab")
+            mockMvc.perform(put("/orders/grab")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("抢单失败，订单可能已被抢或不存在"));
+                    .andExpect(jsonPath("$.message").value("订单已被抢或不存在"));
         }
 
         // 验证Mock调用
@@ -351,7 +358,7 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非骑手角色
 
             // 执行测试
-            mockMvc.perform(post("/orders/grab")
+            mockMvc.perform(put("/orders/grab")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -392,12 +399,13 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
             // 执行测试
-            mockMvc.perform(post("/orders/cancel")
+            mockMvc.perform(put("/orders/cancel")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.message").value("取消订单成功"));
+                    .andExpect(jsonPath("$.data.order_id").value(orderId))
+                    .andExpect(jsonPath("$.data.status").value("CANCELLED"));
         }
 
         // 验证Mock调用
@@ -431,12 +439,12 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
             // 执行测试
-            mockMvc.perform(post("/orders/cancel")
+            mockMvc.perform(put("/orders/cancel")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("取消订单失败，订单可能不存在或状态不允许取消"));
+                    .andExpect(jsonPath("$.message").value("当前状态不可取消或订单不存在"));
         }
 
         // 验证Mock调用
@@ -467,7 +475,7 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant"); // 非骑手角色
 
             // 执行测试
-            mockMvc.perform(post("/orders/cancel")
+            mockMvc.perform(put("/orders/cancel")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -510,12 +518,13 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
             // 执行测试
-            mockMvc.perform(put("/orders/status")
+            mockMvc.perform(post("/orders/rider-update-status")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.message").value("订单状态更新成功"));
+                    .andExpect(jsonPath("$.data.orderId").value(orderId))
+                    .andExpect(jsonPath("$.data.status").value(targetStatus));
         }
 
         // 验证Mock调用
@@ -551,12 +560,12 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
             // 执行测试
-            mockMvc.perform(put("/orders/status")
+            mockMvc.perform(post("/orders/rider-update-status")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("订单状态更新失败，请检查订单状态和权限"));
+                    .andExpect(jsonPath("$.message").value("订单状态更新失败"));
         }
 
         // 验证Mock调用
@@ -589,7 +598,7 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非骑手角色
 
             // 执行测试
-            mockMvc.perform(put("/orders/status")
+            mockMvc.perform(post("/orders/rider-update-status")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -634,12 +643,14 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
             // 执行测试
-            mockMvc.perform(get("/orders/rider"))
+            mockMvc.perform(post("/orders/rider-history-query")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new RiderOrderHistoryQueryRequest())))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.data").isArray())
-                    .andExpect(jsonPath("$.data[0].id").value(100L))
-                    .andExpect(jsonPath("$.data[0].status").value(2));
+                    .andExpect(jsonPath("$.data.orders").isArray())
+                    .andExpect(jsonPath("$.data.orders[0].orderId").value(100L))
+                    .andExpect(jsonPath("$.data.orders[0].status").value(2));
         }
 
         // 验证Mock调用
@@ -666,7 +677,9 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant"); // 非骑手角色
 
             // 执行测试
-            mockMvc.perform(get("/orders/rider"))
+            mockMvc.perform(post("/orders/rider-history-query")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new RiderOrderHistoryQueryRequest())))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(400))
                     .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
@@ -700,7 +713,9 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
             // 执行测试
-            mockMvc.perform(get("/orders/rider"))
+            mockMvc.perform(post("/orders/rider-history-query")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new RiderOrderHistoryQueryRequest())))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(400))
                     .andExpect(jsonPath("$.message").value("获取骑手订单失败：数据库查询失败"));
@@ -740,13 +755,12 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
             // 执行测试
-            mockMvc.perform(get("/orders/earnings"))
+            mockMvc.perform(get("/orders/rider-earnings"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(200))
                     .andExpect(jsonPath("$.data.totalEarnings").value(500.00))
-                    .andExpect(jsonPath("$.data.todayEarnings").value(50.00))
-                    .andExpect(jsonPath("$.data.completedOrders").value(25))
-                    .andExpect(jsonPath("$.data.todayOrders").value(3));
+                    .andExpect(jsonPath("$.data.currentMonth").value(50.00))
+                    .andExpect(jsonPath("$.data.completedOrders").value(25));
         }
 
         // 验证Mock调用
@@ -773,7 +787,7 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非骑手角色
 
             // 执行测试
-            mockMvc.perform(get("/orders/earnings"))
+            mockMvc.perform(get("/orders/rider-earnings"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(500))
                     .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
@@ -807,7 +821,7 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
             // 执行测试
-            mockMvc.perform(get("/orders/earnings"))
+            mockMvc.perform(get("/orders/rider-earnings"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(400))
                     .andExpect(jsonPath("$.message").value("获取收入统计失败：统计计算失败"));
@@ -850,12 +864,14 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
 
             // 执行测试
-            mockMvc.perform(put("/orders/merchant")
+            mockMvc.perform(put("/orders/merchant-update")
+                            .header("Authorization", "Bearer test-token")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.message").value("订单状态更新成功"));
+                    .andExpect(jsonPath("$.data.id").value(orderId))
+                    .andExpect(jsonPath("$.data.newStatus").value(newStatus));
         }
 
         // 验证Mock调用
@@ -894,12 +910,14 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
 
             // 执行测试
-            mockMvc.perform(put("/orders/merchant")
+            mockMvc.perform(put("/orders/merchant-update")
+                            .header("Authorization", "Bearer test-token")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.message").value("订单状态更新成功"));
+                    .andExpect(jsonPath("$.data.id").value(orderId))
+                    .andExpect(jsonPath("$.data.newStatus").value(newStatus));
         }
 
         // 验证Mock调用
@@ -936,12 +954,13 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
 
             // 执行测试
-            mockMvc.perform(put("/orders/merchant")
+            mockMvc.perform(put("/orders/merchant-update")
+                            .header("Authorization", "Bearer test-token")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("订单状态更新失败，请检查订单状态和权限"));
+                    .andExpect(jsonPath("$.message").value("订单更新失败：权限不足或订单不存在"));
         }
 
         // 验证Mock调用
@@ -974,7 +993,8 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非商家角色
 
             // 执行测试
-            mockMvc.perform(put("/orders/merchant")
+            mockMvc.perform(put("/orders/merchant-update")
+                            .header("Authorization", "Bearer test-token")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -1016,7 +1036,8 @@ class OrderControllerTest {
             mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
 
             // 执行测试
-            mockMvc.perform(put("/orders/merchant")
+            mockMvc.perform(put("/orders/merchant-update")
+                            .header("Authorization", "Bearer test-token")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())

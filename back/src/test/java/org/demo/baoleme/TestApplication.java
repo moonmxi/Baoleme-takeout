@@ -9,7 +9,7 @@
 package org.demo.baoleme;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -20,7 +20,7 @@ import org.springframework.web.socket.config.annotation.EnableWebSocket;
  * 测试专用的Spring Boot应用类
  * 排除MyBatis相关的自动配置，避免在测试环境中出现Mapper扫描问题
  */
-@SpringBootApplication
+@TestConfiguration
 @EnableWebSocket
 @ComponentScan(basePackages = "org.demo.baoleme", excludeFilters = {
     @ComponentScan.Filter(type = FilterType.REGEX, pattern = "org\\.demo\\.baoleme\\.mapper\\..*")

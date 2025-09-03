@@ -454,7 +454,7 @@ class MerchantControllerTest {
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.data.user_id").value(TEST_USER_ID))
                     .andExpect(jsonPath("$.data.username").value("newMerchantName"))
-                    .andExpect(jsonPath("$.data.newToken").value(newToken));
+                    .andExpect(jsonPath("$.data.new_token").value(newToken));
         }
 
         // 验证Service方法调用

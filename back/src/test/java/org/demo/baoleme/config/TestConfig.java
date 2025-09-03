@@ -26,6 +26,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.demo.baoleme.common.JwtUtils;
 import org.demo.baoleme.common.JwtInterceptor;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.mybatis.spring.SqlSessionFactoryBean;
+import org.mybatis.spring.SqlSessionTemplate;
 
 
 import javax.sql.DataSource;
@@ -51,8 +54,68 @@ public class TestConfig {
                 .build();
     }
 
-    // 移除MyBatis配置，改用@MockBean在各测试类中Mock具体的Mapper
-    // 这样可以避免复杂的MyBatis配置问题
+    /**
+     * Mock所有Mapper接口，避免MyBatis配置问题
+     */
+    @Bean
+    @Primary
+    public org.demo.baoleme.mapper.MessageMapper messageMapper() {
+        return Mockito.mock(org.demo.baoleme.mapper.MessageMapper.class);
+    }
+
+    @Bean
+    @Primary
+    public org.demo.baoleme.mapper.UserMapper userMapper() {
+        return Mockito.mock(org.demo.baoleme.mapper.UserMapper.class);
+    }
+
+    @Bean
+    @Primary
+    public org.demo.baoleme.mapper.AdminMapper adminMapper() {
+        return Mockito.mock(org.demo.baoleme.mapper.AdminMapper.class);
+    }
+
+    @Bean
+    @Primary
+    public org.demo.baoleme.mapper.ReviewMapper reviewMapper() {
+        return Mockito.mock(org.demo.baoleme.mapper.ReviewMapper.class);
+    }
+
+    @Bean
+    @Primary
+    public org.demo.baoleme.mapper.CartMapper cartMapper() {
+        return Mockito.mock(org.demo.baoleme.mapper.CartMapper.class);
+    }
+
+    @Bean
+    @Primary
+    public org.demo.baoleme.mapper.OrderMapper orderMapper() {
+        return Mockito.mock(org.demo.baoleme.mapper.OrderMapper.class);
+    }
+
+    @Bean
+    @Primary
+    public org.demo.baoleme.mapper.RiderMapper riderMapper() {
+        return Mockito.mock(org.demo.baoleme.mapper.RiderMapper.class);
+    }
+
+    @Bean
+    @Primary
+    public org.demo.baoleme.mapper.StoreMapper storeMapper() {
+        return Mockito.mock(org.demo.baoleme.mapper.StoreMapper.class);
+    }
+
+    @Bean
+    @Primary
+    public org.demo.baoleme.mapper.ProductMapper productMapper() {
+        return Mockito.mock(org.demo.baoleme.mapper.ProductMapper.class);
+    }
+
+    @Bean
+    @Primary
+    public org.demo.baoleme.mapper.SaleMapper saleMapper() {
+        return Mockito.mock(org.demo.baoleme.mapper.SaleMapper.class);
+    }
 
     /**
      * 配置测试环境的密码编码器
@@ -94,9 +157,9 @@ public class TestConfig {
      *
      * @return RedisTemplate Redis操作模板
      */
-    @Bean
+    @Bean("testRedisTemplate")
     @Primary
-    public RedisTemplate<String, Object> redisTemplate() {
+    public RedisTemplate<String, Object> testRedisTemplate() {
         RedisTemplate<String, Object> template = Mockito.mock(RedisTemplate.class);
         ValueOperations<String, Object> valueOps = Mockito.mock(ValueOperations.class);
         Mockito.when(template.opsForValue()).thenReturn(valueOps);

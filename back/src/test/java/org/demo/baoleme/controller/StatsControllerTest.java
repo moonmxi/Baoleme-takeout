@@ -16,9 +16,11 @@ import org.demo.baoleme.pojo.Product;
 import org.demo.baoleme.service.SalesStatsService;
 import org.demo.baoleme.service.StoreService;
 import org.demo.baoleme.common.UserHolder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -28,6 +30,8 @@ import org.springframework.context.annotation.Import;
 import org.demo.baoleme.config.TestConfig;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+
+import static org.mockito.Mockito.mockStatic;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -68,10 +72,9 @@ class StatsControllerTest {
     private StoreService storeService;
 
     /**
-     * 用户持有者Mock对象
+     * 用户持有者静态Mock对象
      */
-    @MockBean
-    private UserHolder userHolder;
+    private MockedStatic<UserHolder> mockedUserHolder;
 
     /**
      * 测试前的初始化设置
@@ -79,8 +82,20 @@ class StatsControllerTest {
      */
     @BeforeEach
     void setUp() {
-        // 设置用户ID
-        when(UserHolder.getId()).thenReturn(1L);
+        // 设置静态方法Mock
+        mockedUserHolder = mockStatic(UserHolder.class);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(1L);
+    }
+
+    /**
+     * 测试后的清理工作
+     * 关闭静态Mock对象
+     */
+    @AfterEach
+    void tearDown() {
+        if (mockedUserHolder != null) {
+            mockedUserHolder.close();
+        }
     }
 
     /**
