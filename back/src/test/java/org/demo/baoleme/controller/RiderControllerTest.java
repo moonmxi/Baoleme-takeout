@@ -11,6 +11,7 @@ package org.demo.baoleme.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.demo.baoleme.common.JwtUtils;
 import org.demo.baoleme.common.UserHolder;
+import org.demo.baoleme.common.JwtInterceptor;
 import org.demo.baoleme.dto.request.rider.*;
 import org.demo.baoleme.pojo.Rider;
 import org.demo.baoleme.service.RiderService;
@@ -85,6 +86,12 @@ class RiderControllerTest extends BaseControllerTest {
     private org.demo.baoleme.mapper.RiderMapper riderMapper;
 
     /**
+     * Mock JwtInterceptor to avoid JWT authentication issues
+     */
+    @MockBean
+    private JwtInterceptor jwtInterceptor;
+
+    /**
      * 测试用骑手数据
      */
     private Rider testRider;
@@ -119,7 +126,10 @@ class RiderControllerTest extends BaseControllerTest {
      * 准备测试数据和模拟对象行为
      */
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
+        // Mock JwtInterceptor让所有请求通过
+        when(jwtInterceptor.preHandle(any(), any(), any())).thenReturn(true);
+        
         // 初始化测试骑手数据
         testRider = new Rider();
         testRider.setId(TEST_USER_ID);

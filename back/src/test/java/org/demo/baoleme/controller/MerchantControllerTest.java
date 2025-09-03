@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.demo.baoleme.controller.BaseControllerTest;
 import org.demo.baoleme.common.JwtUtils;
 import org.demo.baoleme.common.UserHolder;
+import org.demo.baoleme.common.JwtInterceptor;
 import org.demo.baoleme.dto.request.merchant.*;
 import org.demo.baoleme.pojo.Merchant;
 import org.demo.baoleme.service.MerchantService;
@@ -85,6 +86,12 @@ class MerchantControllerTest extends BaseControllerTest {
     private org.demo.baoleme.mapper.MerchantMapper merchantMapper;
 
     /**
+     * Mock JwtInterceptor to avoid JWT authentication issues
+     */
+    @MockBean
+    private JwtInterceptor jwtInterceptor;
+
+    /**
      * 测试用商家数据
      */
     private Merchant testMerchant;
@@ -104,7 +111,10 @@ class MerchantControllerTest extends BaseControllerTest {
      * 准备测试数据和模拟对象行为
      */
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
+        // Mock JwtInterceptor让所有请求通过
+        when(jwtInterceptor.preHandle(any(), any(), any())).thenReturn(true);
+        
         // 初始化测试商家数据
         testMerchant = new Merchant();
         testMerchant.setId(TEST_USER_ID);

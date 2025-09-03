@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.demo.baoleme.common.CommonResponse;
 import org.demo.baoleme.common.ResponseBuilder;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -88,6 +89,19 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
         
         return ResponseBuilder.fail("参数验证失败: " + errorMessage);
+    }
+
+    /**
+     * 处理JSON反序列化异常
+     * 
+     * @param ex JSON反序列化异常
+     * @return CommonResponse 错误响应
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public CommonResponse handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        log.warn("JSON反序列化失败: {}", ex.getMessage());
+        return ResponseBuilder.fail("请求参数格式错误");
     }
 
     /**

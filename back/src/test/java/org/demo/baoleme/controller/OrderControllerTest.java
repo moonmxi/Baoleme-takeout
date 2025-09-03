@@ -17,6 +17,7 @@ package org.demo.baoleme.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.demo.baoleme.common.UserHolder;
 import org.demo.baoleme.common.JwtUtils;
+import org.demo.baoleme.common.JwtInterceptor;
 import org.demo.baoleme.dto.request.order.*;
 import org.demo.baoleme.dto.request.rider.RiderOrderHistoryQueryRequest;
 import org.demo.baoleme.dto.response.order.*;
@@ -130,12 +131,19 @@ class OrderControllerTest extends BaseControllerTest {
     private org.demo.baoleme.mapper.RiderMapper riderMapper;
 
     /**
+     * Mock JwtInterceptor to avoid JWT authentication issues
+     */
+    @MockBean
+    private JwtInterceptor jwtInterceptor;
+
+    /**
      * 测试前置设置
      * 初始化Mock对象和通用测试数据
      */
     @BeforeEach
-    void setUp() {
-        // 初始化通用Mock设置
+    void setUp() throws Exception {
+        // Mock JwtInterceptor让所有请求通过
+        when(jwtInterceptor.preHandle(any(), any(), any())).thenReturn(true);
     }
 
     // ==================== 获取可用订单接口测试 ====================

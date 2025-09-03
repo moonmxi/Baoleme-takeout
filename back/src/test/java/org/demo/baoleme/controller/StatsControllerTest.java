@@ -16,6 +16,7 @@ import org.demo.baoleme.pojo.Product;
 import org.demo.baoleme.service.SalesStatsService;
 import org.demo.baoleme.service.StoreService;
 import org.demo.baoleme.common.UserHolder;
+import org.demo.baoleme.common.JwtInterceptor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -72,6 +73,12 @@ class StatsControllerTest {
     private StoreService storeService;
 
     /**
+     * JWT拦截器Mock对象
+     */
+    @MockBean
+    private JwtInterceptor jwtInterceptor;
+
+    /**
      * 用户持有者静态Mock对象
      */
     private MockedStatic<UserHolder> mockedUserHolder;
@@ -81,7 +88,10 @@ class StatsControllerTest {
      * 设置用户ID和基础Mock行为
      */
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
+        // Mock JwtInterceptor让所有请求通过
+        when(jwtInterceptor.preHandle(any(), any(), any())).thenReturn(true);
+        
         // 设置静态方法Mock
         mockedUserHolder = mockStatic(UserHolder.class);
         mockedUserHolder.when(UserHolder::getId).thenReturn(1L);

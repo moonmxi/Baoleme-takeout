@@ -43,11 +43,11 @@ public class ReviewController {
             @RequestHeader("Authorization") String tokenHeader,
             @RequestBody ReviewReadRequest request
     ) {
-        System.out.println("收到请求：" + request);
-
         Long storeId = request.getStoreId();
         int page = request.getPage();
         int pageSize = request.getPageSize();
+
+        System.out.println("收到请求: storeId=" + storeId + ", page=" + page + ", pageSize=" + pageSize);
 
         if(!storeService.validateStoreOwnership(storeId, UserHolder.getId())){
             return ResponseBuilder.fail("无权查看");
@@ -64,11 +64,10 @@ public class ReviewController {
                 page,
                 pageSize
         );
+        System.out.println("reviewPage: " + reviewPage);
 
         // Step3: 转换为响应结构（空列表也视为正常结果）
         ReviewPageResponse response = convertToPageResponse(reviewPage);
-
-        System.out.println("回复：" + response);
         return ResponseBuilder.ok(response);
     }
 
@@ -128,6 +127,19 @@ public class ReviewController {
     // 辅助方法：将Review转换为ReviewReadResponse
     private ReviewPageResponse convertToPageResponse(Page<Review> reviewPage) {
         ReviewPageResponse response = new ReviewPageResponse();
+        
+        // 处理reviewPage为null的情况
+        if (reviewPage == null) {
+            response.setCurrentPage(1);
+            response.setPageSize(10);
+            response.setTotalCount(0);
+            response.setTotalPages(0);
+            response.setPrePage(0);
+            response.setNextPage(0);
+            response.setReviews(java.util.Collections.emptyList());
+            return response;
+        }
+        
         response.setCurrentPage(reviewPage.getCurrPage());
         response.setPageSize(reviewPage.getPageSize());
         response.setTotalCount(reviewPage.getCount());
@@ -164,7 +176,6 @@ public class ReviewController {
 
         response.setReviews(reviews);
 
-        System.out.println("回复：" + response);
         return response;
     }
 }

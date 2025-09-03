@@ -21,7 +21,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.http.MediaType;
@@ -45,7 +47,9 @@ import org.demo.baoleme.config.TestConfig;
  * 使用MockMvc进行Web层测试，模拟HTTP请求和响应
  * 使用Mockito模拟Service层依赖
  */
-@WebMvcTest(CartController.class)
+@SpringBootTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@AutoConfigureMockMvc
 @Import(TestConfig.class)
 class CartControllerTest extends BaseControllerTest {
 
@@ -91,9 +95,11 @@ class CartControllerTest extends BaseControllerTest {
      * 设置默认的用户ID
      */
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         // 模拟UserHolder返回测试用户ID
         mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        // Mock JwtInterceptor让所有请求通过
+        when(jwtInterceptor.preHandle(any(), any(), any())).thenReturn(true);
     }
 
     /**

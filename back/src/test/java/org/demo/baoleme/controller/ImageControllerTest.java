@@ -141,9 +141,11 @@ class ImageControllerTest extends BaseControllerTest {
      * 设置默认的用户ID
      */
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         // 模拟UserHolder返回测试用户ID
         mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        // Mock JwtInterceptor让所有请求通过
+        when(jwtInterceptor.preHandle(any(), any(), any())).thenReturn(true);
     }
 
     // ==================== 骑手头像上传测试 ====================

@@ -103,10 +103,12 @@ class CouponControllerTest {
      * 设置默认的商户ID
      */
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         // 模拟UserHolder返回测试商户ID
         mockedUserHolder = mockStatic(UserHolder.class);
         mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        // Mock JwtInterceptor让所有请求通过
+        when(jwtInterceptor.preHandle(any(), any(), any())).thenReturn(true);
     }
 
     /**

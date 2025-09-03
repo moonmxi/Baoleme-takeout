@@ -18,6 +18,7 @@ import org.demo.baoleme.dto.response.user.UserGetProductResponse;
 import org.demo.baoleme.pojo.Store;
 import org.demo.baoleme.service.StoreService;
 import org.demo.baoleme.service.UserService;
+import org.demo.baoleme.common.JwtInterceptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -126,6 +127,12 @@ class StoreControllerTest extends BaseControllerTest {
     private org.demo.baoleme.mapper.SaleMapper saleMapper;
 
     /**
+     * 模拟的JwtInterceptor依赖，用于避免JWT认证问题
+     */
+    @MockBean
+    private JwtInterceptor jwtInterceptor;
+
+    /**
      * 测试用店铺数据
      */
     private Store testStore;
@@ -170,7 +177,10 @@ class StoreControllerTest extends BaseControllerTest {
      * 准备测试数据和模拟对象行为
      */
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
+        // 配置JwtInterceptor Mock行为
+        when(jwtInterceptor.preHandle(any(), any(), any())).thenReturn(true);
+        
         // 初始化测试店铺数据
         testStore = new Store();
         testStore.setId(TEST_STORE_ID);
@@ -935,7 +945,7 @@ class StoreControllerTest extends BaseControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isEmpty());
+                .andExpect(jsonPath("$.data").doesNotExist());
 
         // 验证Service方法调用
         verify(storeService).getStoreById(999L);

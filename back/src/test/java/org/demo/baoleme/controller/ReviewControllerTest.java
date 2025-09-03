@@ -22,15 +22,19 @@ import org.demo.baoleme.service.ReviewService;
 import org.demo.baoleme.service.StoreService;
 import org.demo.baoleme.service.UserService;
 import org.demo.baoleme.common.UserHolder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -44,14 +48,17 @@ import org.springframework.context.annotation.Import;
 import org.demo.baoleme.config.TestConfig;
 import org.mockito.MockedStatic;
 import org.junit.jupiter.api.AfterEach;
+import org.demo.baoleme.common.JwtInterceptor;
 
 /**
  * ReviewController测试类
  * 包含评论列表查询、筛选等功能的测试用例
  */
-@WebMvcTest(ReviewController.class)
+@SpringBootTest(classes = org.demo.baoleme.TestApplication.class)
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
 @Import(TestConfig.class)
-class ReviewControllerTest extends BaseControllerTest {
+class ReviewControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -62,6 +69,11 @@ class ReviewControllerTest extends BaseControllerTest {
     @MockBean
     private StoreService storeService;
 
+    /**
+     * UserHolder静态Mock对象
+     */
+    private MockedStatic<UserHolder> mockedUserHolder;
+
     @MockBean
     private UserMapper userMapper;
 
@@ -71,20 +83,39 @@ class ReviewControllerTest extends BaseControllerTest {
     @MockBean
     private ProductMapper productMapper;
 
+    @MockBean
+    private JwtInterceptor jwtInterceptor;
+
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
-    private org.demo.baoleme.common.JwtInterceptor jwtInterceptor;
+
 
     /**
      * 模拟用户登录状态
      */
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
+        // 初始化UserHolder静态Mock
+        mockedUserHolder = mockStatic(UserHolder.class);
         // 模拟用户登录状态 - 设置为商家角色
         mockedUserHolder.when(UserHolder::getId).thenReturn(1L);
         mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
+        
+        // 配置JWT拦截器Mock - 允许所有请求通过
+        when(jwtInterceptor.preHandle(any(), any(), any())).thenReturn(true);
+    }
+
+    /**
+     * 测试后置方法
+     * 清理Mock对象资源
+     */
+    @AfterEach
+    void tearDown() {
+        // 关闭UserHolder静态Mock
+        if (mockedUserHolder != null) {
+            mockedUserHolder.close();
+        }
     }
 
     /**
@@ -155,7 +186,7 @@ class ReviewControllerTest extends BaseControllerTest {
         when(productMapper.selectById(eq(1L))).thenReturn(mockProduct1);
         when(productMapper.selectById(eq(2L))).thenReturn(mockProduct2);
 
-        // 执行测试请求
+        // 执行测试请求并验证响应
         mockMvc.perform(post("/store/reviews/list")
                         .header("Authorization", "Bearer test-token")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -164,9 +195,12 @@ class ReviewControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.reviews").isArray())
                 .andExpect(jsonPath("$.data.reviews.length()").value(2))
-                .andExpect(jsonPath("$.data.currentPage").value(1))
-                .andExpect(jsonPath("$.data.totalCount").value(2))
-                .andExpect(jsonPath("$.data.totalPages").value(1));
+                .andExpect(jsonPath("$.data.current_page").value(1))
+                .andExpect(jsonPath("$.data.page_size").value(10))
+                .andExpect(jsonPath("$.data.total_count").value(2))
+                .andExpect(jsonPath("$.data.total_pages").value(1))
+                .andExpect(jsonPath("$.data.pre_page").value(0))
+                .andExpect(jsonPath("$.data.next_page").value(0));
 
         // 验证服务层调用
         verify(storeService, times(1)).validateStoreOwnership(eq(1L), eq(1L));
@@ -302,8 +336,8 @@ class ReviewControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.reviews").isArray())
                 .andExpect(jsonPath("$.data.reviews.length()").value(1))
-                .andExpect(jsonPath("$.data.currentPage").value(1))
-                .andExpect(jsonPath("$.data.totalCount").value(1));
+                .andExpect(jsonPath("$.data.current_page").value(1))
+                .andExpect(jsonPath("$.data.total_count").value(1));
 
         // 验证服务层调用
         verify(storeService, times(1)).validateStoreOwnership(eq(1L), eq(1L));
@@ -372,8 +406,8 @@ class ReviewControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.reviews").isArray())
                 .andExpect(jsonPath("$.data.reviews.length()").value(1))
-                .andExpect(jsonPath("$.data.currentPage").value(1))
-                .andExpect(jsonPath("$.data.totalCount").value(1));
+                .andExpect(jsonPath("$.data.current_page").value(1))
+                .andExpect(jsonPath("$.data.total_count").value(1));
 
         // 验证服务层调用
         verify(storeService, times(1)).validateStoreOwnership(eq(1L), eq(1L));
@@ -460,17 +494,14 @@ class ReviewControllerTest extends BaseControllerTest {
         // 准备测试数据 - 这里我们通过直接构造JSON来模拟无效的筛选类型
         String invalidRequestJson = "{\"storeId\":1,\"type\":\"INVALID\",\"page\":1,\"pageSize\":10}";
 
-        // 模拟服务层行为
-        when(storeService.validateStoreOwnership(eq(1L), eq(1L))).thenReturn(true);
-
-        // 执行测试请求 - 期望JSON解析失败或者业务逻辑处理
+        // 执行测试请求 - 期望JSON解析失败，返回400错误
         mockMvc.perform(post("/store/reviews/filter")
                         .header("Authorization", "Bearer test-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidRequestJson))
-                .andExpect(status().isOk()); // 验证请求能正常处理
+                .andExpect(status().isBadRequest()); // 期望400错误，因为JSON反序列化失败
 
-        // 注意：由于枚举类型的限制，实际上无效的枚举值会在JSON反序列化时就失败
-        // 这里主要是验证系统的健壮性
+        // 注意：由于枚举类型的限制，无效的枚举值会在JSON反序列化时就失败
+        // 这里验证系统能正确处理无效输入
     }
 }

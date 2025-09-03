@@ -103,6 +103,12 @@ class UserControllerTest extends BaseControllerTest {
     private JwtUtils jwtUtils;
 
     /**
+     * Mock JwtInterceptor to avoid authentication issues in tests
+     */
+    @MockBean
+    private org.demo.baoleme.common.JwtInterceptor jwtInterceptor;
+
+    /**
      * Mock UserMapper to avoid MyBatis configuration conflicts
      */
     @MockBean
@@ -149,8 +155,10 @@ class UserControllerTest extends BaseControllerTest {
      * 初始化Mock对象和通用测试数据
      */
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        // Mock JwtInterceptor让所有请求通过
+        when(jwtInterceptor.preHandle(any(), any(), any())).thenReturn(true);
     }
 
     // ==================== 用户注册接口测试 ====================

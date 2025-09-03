@@ -20,10 +20,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,6 +38,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import org.springframework.context.annotation.Import;
 import org.demo.baoleme.config.TestConfig;
+import org.demo.baoleme.config.TestWebConfig;
+import org.demo.baoleme.common.JwtInterceptor;
 import org.demo.baoleme.common.JwtUtils;
 import org.mockito.MockedStatic;
 import org.junit.jupiter.api.AfterEach;
@@ -44,7 +49,8 @@ import org.junit.jupiter.api.AfterEach;
  * 使用MockMvc进行Web层测试，模拟HTTP请求和响应
  * 使用Mockito模拟Service层依赖
  */
-@WebMvcTest(AdminController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
 @Import(TestConfig.class)
 class AdminControllerTest {
 
@@ -73,7 +79,7 @@ class AdminControllerTest {
     private ProductService productService;
 
     @MockBean
-    private org.demo.baoleme.common.JwtInterceptor jwtInterceptor;
+    private JwtInterceptor jwtInterceptor;
 
     /**
      * Mock的AdminMapper，避免MyBatis配置问题
@@ -135,13 +141,16 @@ class AdminControllerTest {
     private MockedStatic<UserHolder> mockedUserHolder;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         // 默认设置为管理员角色
         mockedUserHolder = mockStatic(UserHolder.class);
         mockedUserHolder.when(UserHolder::getRole).thenReturn("admin");
         
         // Mock JwtUtils静态方法
         mockedJwtUtils = mockStatic(JwtUtils.class);
+        
+        // Mock JwtInterceptor让所有请求通过
+        when(jwtInterceptor.preHandle(any(), any(), any())).thenReturn(true);
     }
 
     @AfterEach
@@ -265,10 +274,22 @@ class AdminControllerTest {
         );
 
         // 模拟Service层行为
-        when(adminService.getAllUsersPaged(anyInt(), anyInt(), anyString(), anyString(), anyLong(), anyLong()))
+        when(adminService.getAllUsersPaged(eq(1), eq(10), eq("test"), isNull(), isNull(), isNull()))
                 .thenReturn(mockUsers);
 
         // 执行测试
+        MvcResult result = mockMvc.perform(post("/admin/userlist")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andReturn();
+        
+        // 打印实际响应内容用于调试
+        String responseContent = result.getResponse().getContentAsString();
+        System.out.println("Actual response: " + responseContent);
+        
+        // 继续验证
         mockMvc.perform(post("/admin/userlist")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -278,7 +299,7 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.data.users.length()").value(2));
 
         // 验证Service方法调用
-        verify(adminService).getAllUsersPaged(anyInt(), anyInt(), anyString(), anyString(), anyLong(), anyLong());
+        verify(adminService, times(2)).getAllUsersPaged(eq(1), eq(10), eq("test"), isNull(), isNull(), isNull());
     }
 
     /**
@@ -304,7 +325,7 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.message").value("无权限访问，仅管理员可操作"));
 
         // 验证Service方法未被调用
-        verify(adminService, never()).getAllUsersPaged(anyInt(), anyInt(), anyString(), anyString(), anyLong(), anyLong());
+        verify(adminService, never()).getAllUsersPaged(anyInt(), anyInt(), anyString(), anyString(), any(), any());
     }
 
     /**
@@ -326,7 +347,7 @@ class AdminControllerTest {
         );
 
         // 模拟Service层行为
-        when(adminService.getAllRidersPaged(anyInt(), anyInt(), anyString(), anyLong(), anyLong(), anyInt(), anyInt(), anyLong(), anyLong()))
+        when(adminService.getAllRidersPaged(anyInt(), anyInt(), anyString(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(mockRiders);
 
         // 执行测试
@@ -339,7 +360,7 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.data.riders.length()").value(2));
 
         // 验证Service方法调用
-        verify(adminService).getAllRidersPaged(anyInt(), anyInt(), anyString(), anyLong(), anyLong(), anyInt(), anyInt(), anyLong(), anyLong());
+        verify(adminService).getAllRidersPaged(anyInt(), anyInt(), anyString(), any(), any(), any(), any(), any(), any());
     }
 
     /**
@@ -361,7 +382,7 @@ class AdminControllerTest {
         );
 
         // 模拟Service层行为
-        when(adminService.getAllMerchantsPaged(anyInt(), anyInt(), anyString(), anyLong(), anyLong()))
+        when(adminService.getAllMerchantsPaged(anyInt(), anyInt(), anyString(), any(), any()))
                 .thenReturn(mockMerchants);
 
         // 执行测试
@@ -374,7 +395,7 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.data.merchants.length()").value(2));
 
         // 验证Service方法调用
-        verify(adminService).getAllMerchantsPaged(anyInt(), anyInt(), anyString(), anyLong(), anyLong());
+        verify(adminService).getAllMerchantsPaged(anyInt(), anyInt(), anyString(), any(), any());
     }
 
     /**
@@ -727,6 +748,8 @@ class AdminControllerTest {
         user.setUsername(username);
         user.setGender(gender);
         user.setPhone("1234567890");
+        user.setDescription("Test user description");
+        user.setAvatar("test-avatar.jpg");
         user.setCreatedAt(LocalDateTime.now());
         return user;
     }
@@ -746,6 +769,9 @@ class AdminControllerTest {
         rider.setOrderStatus(status);
         rider.setPhone("1234567890");
         rider.setBalance(100L);
+        rider.setDispatchMode(1);
+        rider.setAvatar("rider-avatar.jpg");
+        rider.setCreatedAt(LocalDateTime.now());
         return rider;
     }
 
@@ -761,6 +787,7 @@ class AdminControllerTest {
         merchant.setId(id);
         merchant.setUsername(username);
         merchant.setPhone("1234567890");
+        merchant.setAvatar("merchant-avatar.jpg");
         merchant.setCreatedAt(LocalDateTime.now());
         return merchant;
     }
