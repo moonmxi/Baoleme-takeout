@@ -14,10 +14,14 @@ import org.demo.baoleme.service.StoreService;
 import org.demo.baoleme.service.UserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,37 +39,29 @@ public class StoreController {
     }
 
     @PostMapping("/create")
-    public CommonResponse createStore(
-            @RequestHeader("Authorization") String tokenHeader,
-            @RequestBody StoreCreateRequest request
-    ) {
-        System.out.println("收到创建请求: " + request);
-
-        // Step1: 从上下文获取商户ID
-        Long merchantId = UserHolder.getId();
-
-        // Step2: 初始化店铺实体对象
-        Store store = new Store();
-        store.setMerchantId(merchantId);
-
-        // Step3: 复制请求参数到领域模型
-        BeanUtils.copyProperties(request, store);
-
-        // Step4: 调用服务层创建店铺
-        Store createdStore = storeService.createStore(store);
-
-        // Step5: 处理创建失败场景
-        if (createdStore == null) {
-            System.out.println("创建失败，店铺名称: " + request.getName());
-            return ResponseBuilder.fail("店铺创建失败，参数校验不通过");
+    public ResponseEntity<CommonResponse> createStore(@RequestBody StoreCreateRequest request) {
+        // 参数验证
+        if (request.getName() == null || request.getName().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(ResponseBuilder.fail("店铺名不能为空"));
         }
-
-        // Step6: 构建响应数据
+        
+        Long merchantId = UserHolder.getId();
+        Store store = new Store();
+        BeanUtils.copyProperties(request, store);
+        store.setMerchantId(merchantId);
+        store.setCreatedAt(LocalDateTime.now());
+        store.setRating(new BigDecimal("5.0"));
+        store.setStatus(1);
+        
+        Store createdStore = storeService.createStore(store);
+        if (createdStore == null) {
+            // 业务逻辑验证失败
+            return ResponseEntity.ok(ResponseBuilder.fail("店铺创建失败，参数校验不通过"));
+        }
+        
         StoreCreateResponse response = new StoreCreateResponse();
-        response.setId(createdStore.getId());
-
-        System.out.println("创建成功，响应: " + response);
-        return ResponseBuilder.ok(response);
+        BeanUtils.copyProperties(createdStore, response);
+        return ResponseEntity.ok(ResponseBuilder.ok(response));
     }
 
     @PostMapping("/list")
@@ -267,6 +263,9 @@ public class StoreController {
     public CommonResponse getStoreInfo(@RequestBody StoreInfoRequest request) {
         Long id = request.getId();
         Store store = storeService.getStoreById(id);
+        if (store == null) {
+            return ResponseBuilder.ok(null);
+        }
         StoreInfoResponse response = new StoreInfoResponse();
         BeanUtils.copyProperties(store, response);
         return ResponseBuilder.ok(response);
