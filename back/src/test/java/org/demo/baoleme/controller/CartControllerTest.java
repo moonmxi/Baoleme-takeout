@@ -37,6 +37,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import org.mockito.MockedStatic;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.context.annotation.Import;
@@ -193,7 +194,7 @@ class CartControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").exists())
-                .andExpect(jsonPath("$.data.totalPrice").value(59.98))
+                .andExpect(jsonPath("$.data.total_price").value(59.98))
                 .andExpect(jsonPath("$.data.items").isArray())
                 .andExpect(jsonPath("$.data.items.length()").value(2));
 
@@ -219,7 +220,7 @@ class CartControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").exists())
-                .andExpect(jsonPath("$.data.totalPrice").value(0.0))
+                .andExpect(jsonPath("$.data.total_price").value(0))
                 .andExpect(jsonPath("$.data.items").isArray())
                 .andExpect(jsonPath("$.data.items.length()").value(0));
 

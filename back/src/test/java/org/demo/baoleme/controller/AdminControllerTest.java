@@ -36,6 +36,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import org.springframework.context.annotation.Import;
 import org.demo.baoleme.config.TestConfig;
 import org.demo.baoleme.config.TestWebConfig;
@@ -418,20 +419,21 @@ class AdminControllerTest {
         );
 
         // 模拟Service层行为
-        when(adminService.getAllStoresPaged(anyInt(), anyInt(), anyString(), anyString(), anyInt(), any(BigDecimal.class), any(BigDecimal.class)))
+        when(adminService.getAllStoresPaged(eq(1), eq(10), eq("store"), eq("restaurant"), isNull(), isNull(), isNull()))
                 .thenReturn(mockStores);
 
         // 执行测试
         mockMvc.perform(post("/admin/storelist")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.stores").isArray())
                 .andExpect(jsonPath("$.data.stores.length()").value(2));
 
         // 验证Service方法调用
-        verify(adminService).getAllStoresPaged(anyInt(), anyInt(), anyString(), anyString(), anyInt(), any(BigDecimal.class), any(BigDecimal.class));
+        verify(adminService).getAllStoresPaged(eq(1), eq(10), eq("store"), eq("restaurant"), isNull(), isNull(), isNull());
     }
 
     /**
@@ -468,8 +470,8 @@ class AdminControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.products").isArray())
-                .andExpect(jsonPath("$.data.products.length()").value(2));
+                .andExpect(jsonPath("$.data.products.list").isArray())
+                .andExpect(jsonPath("$.data.products.list.length()").value(2));
 
         // 验证Service方法调用
         verify(productService).getProductsByStore(1L, 1, 10);
@@ -569,7 +571,7 @@ class AdminControllerTest {
         );
 
         // 模拟Service层行为
-        when(adminService.getAllOrdersPaged(anyLong(), anyLong(), anyLong(), anyInt(), any(LocalDateTime.class), any(LocalDateTime.class), anyInt(), anyInt()))
+        when(adminService.getAllOrdersPaged(eq(1L), eq(1L), isNull(), isNull(), isNull(), isNull(), eq(1), eq(10)))
                 .thenReturn(mockOrders);
 
         // 执行测试
@@ -582,7 +584,7 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.data.orders.length()").value(2));
 
         // 验证Service方法调用
-        verify(adminService).getAllOrdersPaged(anyLong(), anyLong(), anyLong(), anyInt(), any(LocalDateTime.class), any(LocalDateTime.class), anyInt(), anyInt());
+        verify(adminService).getAllOrdersPaged(eq(1L), eq(1L), isNull(), isNull(), isNull(), isNull(), eq(1), eq(10));
     }
 
     /**
@@ -605,7 +607,7 @@ class AdminControllerTest {
         );
 
         // 模拟Service层行为
-        when(adminService.getReviewsByCondition(anyLong(), anyLong(), anyLong(), any(LocalDateTime.class), any(LocalDateTime.class), anyInt(), anyInt(), any(BigDecimal.class), any(BigDecimal.class)))
+        when(adminService.getReviewsByCondition(eq(1L), eq(1L), isNull(), isNull(), isNull(), eq(1), eq(10), isNull(), isNull()))
                 .thenReturn(mockReviews);
 
         // 执行测试
@@ -618,7 +620,7 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.data.reviews.length()").value(2));
 
         // 验证Service方法调用
-        verify(adminService).getReviewsByCondition(anyLong(), anyLong(), anyLong(), any(LocalDateTime.class), any(LocalDateTime.class), anyInt(), anyInt(), any(BigDecimal.class), any(BigDecimal.class));
+        verify(adminService).getReviewsByCondition(eq(1L), eq(1L), isNull(), isNull(), isNull(), eq(1), eq(10), isNull(), isNull());
     }
 
     /**
