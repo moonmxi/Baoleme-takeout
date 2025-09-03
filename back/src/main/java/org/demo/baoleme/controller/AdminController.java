@@ -79,6 +79,11 @@ public class AdminController {
      */
     @PostMapping("/logout")
     public CommonResponse logout(@RequestHeader("Authorization") String tokenHeader) {
+        String role = UserHolder.getRole();
+        if (!"admin".equals(role)) {
+            return ResponseBuilder.fail("无权限访问，仅管理员可操作");
+        }
+        
         String token = tokenHeader.replace("Bearer ", "");
         String redisTokenKey = "admin:token:" + token;
 

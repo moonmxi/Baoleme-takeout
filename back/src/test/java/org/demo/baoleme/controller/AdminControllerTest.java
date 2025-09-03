@@ -184,7 +184,7 @@ class AdminControllerTest {
 
         // 模拟Service层行为
         when(adminService.login(1L, "admin123")).thenReturn(mockAdmin);
-        mockedJwtUtils.when(() -> JwtUtils.createToken(1L, "admin", "admin")).thenReturn(mockToken);
+        mockedJwtUtils.when(() -> JwtUtils.createToken(1L, "admin", null)).thenReturn(mockToken);
 
         // 执行测试
         mockMvc.perform(post("/admin/login")
@@ -196,7 +196,7 @@ class AdminControllerTest {
 
         // 验证Service方法调用
         verify(adminService).login(1L, "admin123");
-        mockedJwtUtils.verify(() -> JwtUtils.createToken(1L, "admin", "admin"));
+        mockedJwtUtils.verify(() -> JwtUtils.createToken(1L, "admin", null));
     }
 
     /**
@@ -234,7 +234,8 @@ class AdminControllerTest {
     @DisplayName("管理员登出 - 成功")
     void testAdminLogout_Success() throws Exception {
         // 执行测试
-        mockMvc.perform(post("/admin/logout"))
+        mockMvc.perform(post("/admin/logout")
+                        .header("Authorization", "Bearer mock-jwt-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
@@ -250,7 +251,8 @@ class AdminControllerTest {
         when(UserHolder.getRole()).thenReturn("user");
 
         // 执行测试
-        mockMvc.perform(post("/admin/logout"))
+        mockMvc.perform(post("/admin/logout")
+                        .header("Authorization", "Bearer mock-jwt-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("无权限访问，仅管理员可操作"));
