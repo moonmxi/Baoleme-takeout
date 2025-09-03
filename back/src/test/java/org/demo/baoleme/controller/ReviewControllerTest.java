@@ -9,6 +9,7 @@
 package org.demo.baoleme.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.demo.baoleme.controller.BaseControllerTest;
 import org.demo.baoleme.dto.request.review.ReviewReadRequest;
 import org.demo.baoleme.mapper.ProductMapper;
 import org.demo.baoleme.mapper.UserMapper;
@@ -41,15 +42,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import org.springframework.context.annotation.Import;
 import org.demo.baoleme.config.TestConfig;
+import org.mockito.MockedStatic;
+import org.junit.jupiter.api.AfterEach;
 
 /**
  * ReviewController测试类
  * 包含评论列表查询、筛选等功能的测试用例
  */
 @WebMvcTest(ReviewController.class)
-@ContextConfiguration(classes = org.demo.baoleme.TestApplication.class)
 @Import(TestConfig.class)
-class ReviewControllerTest {
+class ReviewControllerTest extends BaseControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -76,15 +78,13 @@ class ReviewControllerTest {
     private org.demo.baoleme.common.JwtInterceptor jwtInterceptor;
 
     /**
-     * 测试前的初始化设置
      * 模拟用户登录状态
      */
     @BeforeEach
     void setUp() {
-        // 模拟用户登录状态
-        try (var mockedStatic = mockStatic(UserHolder.class)) {
-            mockedStatic.when(UserHolder::getId).thenReturn(1L);
-        }
+        // 模拟用户登录状态 - 设置为商家角色
+        mockedUserHolder.when(UserHolder::getId).thenReturn(1L);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
     }
 
     /**

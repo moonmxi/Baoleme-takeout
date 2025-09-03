@@ -51,7 +51,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestConfig.class)
-class StoreControllerTest {
+class StoreControllerTest extends BaseControllerTest {
 
     /**
      * MockMvc实例，用于模拟HTTP请求
@@ -202,19 +202,17 @@ class StoreControllerTest {
         request.setImage("http://example.com/store.jpg");
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
-            when(storeService.createStore(any(Store.class))).thenReturn(testStore);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        when(storeService.createStore(any(Store.class))).thenReturn(testStore);
 
-            // 执行测试
-            mockMvc.perform(post("/store/create")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data.id").value(TEST_STORE_ID));
-        }
+        // 执行测试
+        mockMvc.perform(post("/store/create")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.id").value(TEST_STORE_ID));
 
         // 验证Service方法调用
         verify(storeService).createStore(any(Store.class));
@@ -235,19 +233,17 @@ class StoreControllerTest {
         request.setType(TEST_TYPE);
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
-            when(storeService.createStore(any(Store.class))).thenReturn(null);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        when(storeService.createStore(any(Store.class))).thenReturn(null);
 
-            // 执行测试
-            mockMvc.perform(post("/store/create")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("店铺创建失败，参数校验不通过"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/store/create")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("店铺创建失败，参数校验不通过"));
 
         // 验证Service方法调用
         verify(storeService).createStore(any(Store.class));
@@ -295,22 +291,20 @@ class StoreControllerTest {
         List<Store> stores = Arrays.asList(testStore);
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
-            when(storeService.getStoresByMerchant(TEST_MERCHANT_ID, 1, 10)).thenReturn(stores);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        when(storeService.getStoresByMerchant(TEST_MERCHANT_ID, 1, 10)).thenReturn(stores);
 
-            // 执行测试
-            mockMvc.perform(post("/store/list")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data.stores").isArray())
-                    .andExpect(jsonPath("$.data.stores[0].store_id").value(TEST_STORE_ID))
-                    .andExpect(jsonPath("$.data.stores[0].name").value(TEST_STORE_NAME))
-                    .andExpect(jsonPath("$.data.current_page").value(1));
-        }
+        // 执行测试
+        mockMvc.perform(post("/store/list")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.stores").isArray())
+                .andExpect(jsonPath("$.data.stores[0].store_id").value(TEST_STORE_ID))
+                .andExpect(jsonPath("$.data.stores[0].name").value(TEST_STORE_NAME))
+                .andExpect(jsonPath("$.data.current_page").value(1));
 
         // 验证Service方法调用
         verify(storeService).getStoresByMerchant(TEST_MERCHANT_ID, 1, 10);
@@ -331,21 +325,19 @@ class StoreControllerTest {
         List<Store> emptyStores = Arrays.asList();
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
-            when(storeService.getStoresByMerchant(TEST_MERCHANT_ID, 1, 10)).thenReturn(emptyStores);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        when(storeService.getStoresByMerchant(TEST_MERCHANT_ID, 1, 10)).thenReturn(emptyStores);
 
-            // 执行测试
-            mockMvc.perform(post("/store/list")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data.stores").isArray())
-                    .andExpect(jsonPath("$.data.stores").isEmpty())
-                    .andExpect(jsonPath("$.data.current_page").value(1));
-        }
+        // 执行测试
+        mockMvc.perform(post("/store/list")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.stores").isArray())
+                .andExpect(jsonPath("$.data.stores").isEmpty())
+                .andExpect(jsonPath("$.data.current_page").value(1));
 
         // 验证Service方法调用
         verify(storeService).getStoresByMerchant(TEST_MERCHANT_ID, 1, 10);
@@ -369,20 +361,18 @@ class StoreControllerTest {
         when(storeService.getStoreById(TEST_STORE_ID)).thenReturn(testStore);
 
         // 模拟UserHolder行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
 
-            // 执行测试
-            mockMvc.perform(post("/store/view")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data.name").value(TEST_STORE_NAME))
-                    .andExpect(jsonPath("$.data.description").value(TEST_DESCRIPTION))
-                    .andExpect(jsonPath("$.data.location").value(TEST_LOCATION));
-        }
+        // 执行测试
+        mockMvc.perform(post("/store/view")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.name").value(TEST_STORE_NAME))
+                .andExpect(jsonPath("$.data.description").value(TEST_DESCRIPTION))
+                .andExpect(jsonPath("$.data.location").value(TEST_LOCATION));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID);
@@ -404,18 +394,16 @@ class StoreControllerTest {
         when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID)).thenReturn(false);
 
         // 模拟UserHolder行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
 
-            // 执行测试
-            mockMvc.perform(post("/store/view")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("店铺不属于您"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/store/view")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("店铺不属于您"));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID);
@@ -438,18 +426,16 @@ class StoreControllerTest {
         when(storeService.getStoreById(TEST_STORE_ID)).thenReturn(null);
 
         // 模拟UserHolder行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
 
-            // 执行测试
-            mockMvc.perform(post("/store/view")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("店铺ID不存在"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/store/view")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("店铺ID不存在"));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID);
@@ -478,18 +464,16 @@ class StoreControllerTest {
         when(storeService.getStoreById(TEST_STORE_ID)).thenReturn(testStore);
 
         // 模拟UserHolder行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
 
-            // 执行测试
-            mockMvc.perform(put("/store/update")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data.name").value(TEST_STORE_NAME));
-        }
+        // 执行测试
+        mockMvc.perform(put("/store/update")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.name").value(TEST_STORE_NAME));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID);
@@ -513,18 +497,16 @@ class StoreControllerTest {
         when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID)).thenReturn(false);
 
         // 模拟UserHolder行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
 
-            // 执行测试
-            mockMvc.perform(put("/store/update")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("店铺不属于您"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/store/update")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("店铺不属于您"));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID);
@@ -548,18 +530,16 @@ class StoreControllerTest {
         when(storeService.updateStore(any(Store.class))).thenReturn(false);
 
         // 模拟UserHolder行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
 
-            // 执行测试
-            mockMvc.perform(put("/store/update")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("店铺信息更新失败"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/store/update")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("店铺信息更新失败"));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID);
@@ -585,18 +565,16 @@ class StoreControllerTest {
         when(storeService.toggleStoreStatus(TEST_STORE_ID, 0)).thenReturn(true);
 
         // 模拟UserHolder行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
 
-            // 执行测试
-            mockMvc.perform(put("/store/status")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data").value("店铺状态更新成功"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/store/status")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").value("店铺状态更新成功"));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID);
@@ -619,18 +597,16 @@ class StoreControllerTest {
         when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID)).thenReturn(true);
 
         // 模拟UserHolder行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
 
-            // 执行测试
-            mockMvc.perform(put("/store/status")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("状态值必须是0或1"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/store/status")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("状态值必须是0或1"));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID);
@@ -653,18 +629,16 @@ class StoreControllerTest {
         when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID)).thenReturn(false);
 
         // 模拟UserHolder行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
 
-            // 执行测试
-            mockMvc.perform(put("/store/status")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("店铺不属于您"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/store/status")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("店铺不属于您"));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID);
@@ -689,18 +663,16 @@ class StoreControllerTest {
         when(storeService.deleteStore(TEST_STORE_ID)).thenReturn(true);
 
         // 模拟UserHolder行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
 
-            // 执行测试
-            mockMvc.perform(delete("/store/delete")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data").value("店铺数据已删除"));
-        }
+        // 执行测试
+        mockMvc.perform(delete("/store/delete")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").value("店铺数据已删除"));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID);
@@ -722,18 +694,16 @@ class StoreControllerTest {
         when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID)).thenReturn(false);
 
         // 模拟UserHolder行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
 
-            // 执行测试
-            mockMvc.perform(delete("/store/delete")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("店铺不属于您"));
-        }
+        // 执行测试
+        mockMvc.perform(delete("/store/delete")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("店铺不属于您"));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID);
@@ -756,18 +726,16 @@ class StoreControllerTest {
         when(storeService.deleteStore(TEST_STORE_ID)).thenReturn(false);
 
         // 模拟UserHolder行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_MERCHANT_ID);
 
-            // 执行测试
-            mockMvc.perform(delete("/store/delete")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("删除操作失败，店铺可能不存在"));
-        }
+        // 执行测试
+        mockMvc.perform(delete("/store/delete")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("删除操作失败，店铺可能不存在"));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_MERCHANT_ID);
@@ -799,21 +767,19 @@ class StoreControllerTest {
         List<UserFavoriteResponse> stores = Arrays.asList(favoriteResponse);
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(1L);
-            when(userService.getStores(eq(1L), eq("中餐"), any(BigDecimal.class), any(BigDecimal.class), 
-                    any(BigDecimal.class), any(BigDecimal.class), eq(1), eq(10))).thenReturn(stores);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(1L);
+        when(userService.getStores(eq(1L), eq("中餐"), any(BigDecimal.class), any(BigDecimal.class), 
+                any(BigDecimal.class), any(BigDecimal.class), eq(1), eq(10))).thenReturn(stores);
 
-            // 执行测试
-            mockMvc.perform(post("/store/user-view-stores")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data").isArray())
-                    .andExpect(jsonPath("$.data[0].store_id").value(TEST_STORE_ID))
-                    .andExpect(jsonPath("$.data[0].name").value(TEST_STORE_NAME));
-        }
+        // 执行测试
+        mockMvc.perform(post("/store/user-view-stores")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].store_id").value(TEST_STORE_ID))
+                .andExpect(jsonPath("$.data[0].name").value(TEST_STORE_NAME));
 
         // 验证Service方法调用
         verify(userService).getStores(eq(1L), eq("中餐"), any(BigDecimal.class), any(BigDecimal.class), 
@@ -836,20 +802,18 @@ class StoreControllerTest {
         List<UserFavoriteResponse> emptyStores = Arrays.asList();
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(1L);
-            when(userService.getStores(eq(1L), eq("西餐"), any(), any(), any(), any(), eq(1), eq(10)))
-                    .thenReturn(emptyStores);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(1L);
+        when(userService.getStores(eq(1L), eq("西餐"), any(), any(), any(), any(), eq(1), eq(10)))
+                .thenReturn(emptyStores);
 
-            // 执行测试
-            mockMvc.perform(post("/store/user-view-stores")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data").isArray())
-                    .andExpect(jsonPath("$.data").isEmpty());
-        }
+        // 执行测试
+        mockMvc.perform(post("/store/user-view-stores")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data").isEmpty());
 
         // 验证Service方法调用
         verify(userService).getStores(eq(1L), eq("西餐"), any(), any(), any(), any(), eq(1), eq(10));

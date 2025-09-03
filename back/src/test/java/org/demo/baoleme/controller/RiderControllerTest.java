@@ -46,7 +46,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestConfig.class)
-class RiderControllerTest {
+class RiderControllerTest extends BaseControllerTest {
 
     /**
      * MockMvc实例，用于模拟HTTP请求
@@ -327,19 +327,17 @@ class RiderControllerTest {
     @DisplayName("获取骑手信息 - 成功")
     void testGetInfo_Success() throws Exception {
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(riderService.getInfo(TEST_USER_ID)).thenReturn(testRider);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(riderService.getInfo(TEST_USER_ID)).thenReturn(testRider);
 
-            // 执行测试
-            mockMvc.perform(get("/rider/info")
-                            .header("Authorization", "Bearer " + TEST_TOKEN))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data.user_id").value(TEST_USER_ID))
-                    .andExpect(jsonPath("$.data.username").value(TEST_USERNAME))
-                    .andExpect(jsonPath("$.data.phone").value(TEST_PHONE));
-        }
+        // 执行测试
+        mockMvc.perform(get("/rider/info")
+                        .header("Authorization", "Bearer " + TEST_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.user_id").value(TEST_USER_ID))
+                .andExpect(jsonPath("$.data.username").value(TEST_USERNAME))
+                .andExpect(jsonPath("$.data.phone").value(TEST_PHONE));
 
         // 验证Service方法调用
         verify(riderService).getInfo(TEST_USER_ID);
@@ -353,17 +351,15 @@ class RiderControllerTest {
     @DisplayName("获取骑手信息 - 用户不存在")
     void testGetInfo_UserNotExists() throws Exception {
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(riderService.getInfo(TEST_USER_ID)).thenReturn(null);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(riderService.getInfo(TEST_USER_ID)).thenReturn(null);
 
-            // 执行测试
-            mockMvc.perform(get("/rider/info")
-                            .header("Authorization", "Bearer " + TEST_TOKEN))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("当前身份无效或用户不存在"));
-        }
+        // 执行测试
+        mockMvc.perform(get("/rider/info")
+                        .header("Authorization", "Bearer " + TEST_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("当前身份无效或用户不存在"));
 
         // 验证Service方法调用
         verify(riderService).getInfo(TEST_USER_ID);
@@ -385,19 +381,17 @@ class RiderControllerTest {
         request.setDispatchMode(1);
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(riderService.getInfo(TEST_USER_ID)).thenReturn(testRider);
-            when(riderService.updateInfo(any(Rider.class))).thenReturn(true);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(riderService.getInfo(TEST_USER_ID)).thenReturn(testRider);
+        when(riderService.updateInfo(any(Rider.class))).thenReturn(true);
 
-            // 执行测试
-            mockMvc.perform(put("/rider/update")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true));
-        }
+        // 执行测试
+        mockMvc.perform(put("/rider/update")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
 
         // 验证Service方法调用
         verify(riderService).getInfo(TEST_USER_ID);
@@ -419,8 +413,7 @@ class RiderControllerTest {
         String newToken = "new-jwt-token";
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class);
-             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
+        try (MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
             
             mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
             when(riderService.getInfo(TEST_USER_ID)).thenReturn(testRider);
@@ -461,19 +454,17 @@ class RiderControllerTest {
         request.setPhone("13987654321");
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(riderService.getInfo(TEST_USER_ID)).thenReturn(null);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(riderService.getInfo(TEST_USER_ID)).thenReturn(null);
 
-            // 执行测试
-            mockMvc.perform(put("/rider/update")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("用户不存在"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/rider/update")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("用户不存在"));
 
         // 验证Service方法调用
         verify(riderService).getInfo(TEST_USER_ID);
@@ -492,20 +483,18 @@ class RiderControllerTest {
         request.setPhone("13987654321");
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(riderService.getInfo(TEST_USER_ID)).thenReturn(testRider);
-            when(riderService.updateInfo(any(Rider.class))).thenReturn(false);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(riderService.getInfo(TEST_USER_ID)).thenReturn(testRider);
+        when(riderService.updateInfo(any(Rider.class))).thenReturn(false);
 
-            // 执行测试
-            mockMvc.perform(put("/rider/update")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("更新失败，请检查字段"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/rider/update")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("更新失败，请检查字段"));
 
         // 验证Service方法调用
         verify(riderService).getInfo(TEST_USER_ID);
@@ -526,20 +515,18 @@ class RiderControllerTest {
         request.setDispatchMode(1); // 切换到自动接单
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(riderService.updateInfo(any(Rider.class))).thenReturn(true);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(riderService.updateInfo(any(Rider.class))).thenReturn(true);
 
-            // 执行测试
-            mockMvc.perform(patch("/rider/dispatch-mode")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data.current_mode").value(1))
-                    .andExpect(jsonPath("$.data.mode_changed_at").exists());
-        }
+        // 执行测试
+        mockMvc.perform(patch("/rider/dispatch-mode")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.current_mode").value(1))
+                .andExpect(jsonPath("$.data.mode_changed_at").exists());
 
         // 验证Service方法调用
         verify(riderService).updateInfo(any(Rider.class));
@@ -557,19 +544,17 @@ class RiderControllerTest {
         request.setDispatchMode(1);
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(riderService.updateInfo(any(Rider.class))).thenReturn(false);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(riderService.updateInfo(any(Rider.class))).thenReturn(false);
 
-            // 执行测试
-            mockMvc.perform(patch("/rider/dispatch-mode")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("切换接单模式失败"));
-        }
+        // 执行测试
+        mockMvc.perform(patch("/rider/dispatch-mode")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("切换接单模式失败"));
 
         // 验证Service方法调用
         verify(riderService).updateInfo(any(Rider.class));
@@ -585,17 +570,15 @@ class RiderControllerTest {
     @DisplayName("骑手登出 - 成功")
     void testLogout_Success() throws Exception {
         // 模拟UserHolder、Service层和Redis行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(valueOperations.get("rider:token:" + TEST_TOKEN)).thenReturn(TEST_USER_ID);
-            when(riderService.updateInfo(any(Rider.class))).thenReturn(true);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(valueOperations.get("rider:token:" + TEST_TOKEN)).thenReturn(TEST_USER_ID);
+        when(riderService.updateInfo(any(Rider.class))).thenReturn(true);
 
-            // 执行测试
-            mockMvc.perform(post("/rider/logout")
-                            .header("Authorization", "Bearer " + TEST_TOKEN))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true));
-        }
+        // 执行测试
+        mockMvc.perform(post("/rider/logout")
+                        .header("Authorization", "Bearer " + TEST_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
 
         // 验证Redis和Service方法调用
         verify(valueOperations).get("rider:token:" + TEST_TOKEN);
@@ -612,18 +595,16 @@ class RiderControllerTest {
     @DisplayName("骑手登出 - 失败")
     void testLogout_Failed() throws Exception {
         // 模拟UserHolder、Service层和Redis行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(valueOperations.get("rider:token:" + TEST_TOKEN)).thenReturn(TEST_USER_ID);
-            when(riderService.updateInfo(any(Rider.class))).thenReturn(false);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(valueOperations.get("rider:token:" + TEST_TOKEN)).thenReturn(TEST_USER_ID);
+        when(riderService.updateInfo(any(Rider.class))).thenReturn(false);
 
-            // 执行测试
-            mockMvc.perform(post("/rider/logout")
-                            .header("Authorization", "Bearer " + TEST_TOKEN))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("登出失败"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/rider/logout")
+                        .header("Authorization", "Bearer " + TEST_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("登出失败"));
 
         // 验证Service方法调用
         verify(riderService).updateInfo(any(Rider.class));
@@ -639,16 +620,14 @@ class RiderControllerTest {
     @DisplayName("删除骑手账户 - 成功")
     void testDelete_Success() throws Exception {
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(riderService.delete(TEST_USER_ID)).thenReturn(true);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(riderService.delete(TEST_USER_ID)).thenReturn(true);
 
-            // 执行测试
-            mockMvc.perform(delete("/rider/delete")
-                            .header("Authorization", "Bearer " + TEST_TOKEN))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true));
-        }
+        // 执行测试
+        mockMvc.perform(delete("/rider/delete")
+                        .header("Authorization", "Bearer " + TEST_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
 
         // 验证Service方法调用
         verify(riderService).delete(TEST_USER_ID);
@@ -662,17 +641,15 @@ class RiderControllerTest {
     @DisplayName("删除骑手账户 - 失败")
     void testDelete_Failed() throws Exception {
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(riderService.delete(TEST_USER_ID)).thenReturn(false);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(riderService.delete(TEST_USER_ID)).thenReturn(false);
 
-            // 执行测试
-            mockMvc.perform(delete("/rider/delete")
-                            .header("Authorization", "Bearer " + TEST_TOKEN))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("注销失败"));
-        }
+        // 执行测试
+        mockMvc.perform(delete("/rider/delete")
+                        .header("Authorization", "Bearer " + TEST_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("注销失败"));
 
         // 验证Service方法调用
         verify(riderService).delete(TEST_USER_ID);
@@ -693,17 +670,15 @@ class RiderControllerTest {
         autoRider.setDispatchMode(1); // 自动接单
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(riderService.getInfo(TEST_USER_ID)).thenReturn(autoRider);
-            when(riderService.randomSendOrder(TEST_USER_ID)).thenReturn(true);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(riderService.getInfo(TEST_USER_ID)).thenReturn(autoRider);
+        when(riderService.randomSendOrder(TEST_USER_ID)).thenReturn(true);
 
-            // 执行测试
-            mockMvc.perform(post("/rider/auto-order-taking")
-                            .header("Authorization", "Bearer " + TEST_TOKEN))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true));
-        }
+        // 执行测试
+        mockMvc.perform(post("/rider/auto-order-taking")
+                        .header("Authorization", "Bearer " + TEST_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
 
         // 验证Service方法调用
         verify(riderService).getInfo(TEST_USER_ID);
@@ -718,17 +693,15 @@ class RiderControllerTest {
     @DisplayName("自动接单 - 手动接单模式")
     void testAutoOrderTaking_ManualMode() throws Exception {
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(riderService.getInfo(TEST_USER_ID)).thenReturn(testRider); // dispatchMode = 0
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(riderService.getInfo(TEST_USER_ID)).thenReturn(testRider); // dispatchMode = 0
 
-            // 执行测试
-            mockMvc.perform(post("/rider/auto-order-taking")
-                            .header("Authorization", "Bearer " + TEST_TOKEN))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data").value("当前骑手不自动接单"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/rider/auto-order-taking")
+                        .header("Authorization", "Bearer " + TEST_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").value("当前骑手不自动接单"));
 
         // 验证Service方法调用
         verify(riderService).getInfo(TEST_USER_ID);
@@ -748,18 +721,16 @@ class RiderControllerTest {
         autoRider.setDispatchMode(1); // 自动接单
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(riderService.getInfo(TEST_USER_ID)).thenReturn(autoRider);
-            when(riderService.randomSendOrder(TEST_USER_ID)).thenReturn(false);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(riderService.getInfo(TEST_USER_ID)).thenReturn(autoRider);
+        when(riderService.randomSendOrder(TEST_USER_ID)).thenReturn(false);
 
-            // 执行测试
-            mockMvc.perform(post("/rider/auto-order-taking")
-                            .header("Authorization", "Bearer " + TEST_TOKEN))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("目前无空闲订单"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/rider/auto-order-taking")
+                        .header("Authorization", "Bearer " + TEST_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("目前无空闲订单"));
 
         // 验证Service方法调用
         verify(riderService).getInfo(TEST_USER_ID);

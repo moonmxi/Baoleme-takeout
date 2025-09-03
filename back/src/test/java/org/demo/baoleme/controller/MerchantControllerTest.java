@@ -9,6 +9,7 @@
 package org.demo.baoleme.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.demo.baoleme.controller.BaseControllerTest;
 import org.demo.baoleme.common.JwtUtils;
 import org.demo.baoleme.common.UserHolder;
 import org.demo.baoleme.dto.request.merchant.*;
@@ -45,7 +46,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestConfig.class)
-class MerchantControllerTest {
+class MerchantControllerTest extends BaseControllerTest {
 
     /**
      * MockMvc实例，用于模拟HTTP请求
@@ -330,19 +331,17 @@ class MerchantControllerTest {
     @DisplayName("获取商家信息 - 成功")
     void testGetInfo_Success() throws Exception {
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(merchantService.getMerchantById(TEST_USER_ID)).thenReturn(testMerchant);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(merchantService.getMerchantById(TEST_USER_ID)).thenReturn(testMerchant);
 
-            // 执行测试
-            mockMvc.perform(get("/merchant/info")
-                            .header("Authorization", "Bearer " + TEST_TOKEN))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data.user_id").value(TEST_USER_ID))
-                    .andExpect(jsonPath("$.data.username").value("testMerchant"))
-                    .andExpect(jsonPath("$.data.phone").value("13812345678"));
-        }
+        // 执行测试
+        mockMvc.perform(get("/merchant/info")
+                        .header("Authorization", "Bearer " + TEST_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.user_id").value(TEST_USER_ID))
+                .andExpect(jsonPath("$.data.username").value("testMerchant"))
+                .andExpect(jsonPath("$.data.phone").value("13812345678"));
 
         // 验证Service方法调用
         verify(merchantService).getMerchantById(TEST_USER_ID);
@@ -356,17 +355,15 @@ class MerchantControllerTest {
     @DisplayName("获取商家信息 - 用户不存在")
     void testGetInfo_UserNotExists() throws Exception {
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(merchantService.getMerchantById(TEST_USER_ID)).thenReturn(null);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(merchantService.getMerchantById(TEST_USER_ID)).thenReturn(null);
 
-            // 执行测试
-            mockMvc.perform(get("/merchant/info")
-                            .header("Authorization", "Bearer " + TEST_TOKEN))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("当前身份无效或用户不存在"));
-        }
+        // 执行测试
+        mockMvc.perform(get("/merchant/info")
+                        .header("Authorization", "Bearer " + TEST_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("当前身份无效或用户不存在"));
 
         // 验证Service方法调用
         verify(merchantService).getMerchantById(TEST_USER_ID);
@@ -393,22 +390,20 @@ class MerchantControllerTest {
         updatedMerchant.setAvatar("http://example.com/new-avatar.jpg");
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(merchantService.getMerchantById(TEST_USER_ID)).thenReturn(testMerchant);
-            when(merchantService.updateInfo(any(Merchant.class))).thenReturn(updatedMerchant);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(merchantService.getMerchantById(TEST_USER_ID)).thenReturn(testMerchant);
+        when(merchantService.updateInfo(any(Merchant.class))).thenReturn(updatedMerchant);
 
-            // 执行测试
-            mockMvc.perform(put("/merchant/update")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data.user_id").value(TEST_USER_ID))
-                    .andExpect(jsonPath("$.data.phone").value("13987654321"))
-                    .andExpect(jsonPath("$.data.avatar").value("http://example.com/new-avatar.jpg"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/merchant/update")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.user_id").value(TEST_USER_ID))
+                .andExpect(jsonPath("$.data.phone").value("13987654321"))
+                .andExpect(jsonPath("$.data.avatar").value("http://example.com/new-avatar.jpg"));
 
         // 验证Service方法调用
         verify(merchantService).getMerchantById(TEST_USER_ID);
@@ -436,9 +431,7 @@ class MerchantControllerTest {
         String newToken = "new-jwt-token";
 
         // 模拟UserHolder、Service层和JwtUtils行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class);
-             MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
-            
+        try (MockedStatic<JwtUtils> mockedJwtUtils = mockStatic(JwtUtils.class)) {
             mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
             when(merchantService.getMerchantById(TEST_USER_ID)).thenReturn(testMerchant);
             when(merchantService.updateInfo(any(Merchant.class))).thenReturn(updatedMerchant);
@@ -476,20 +469,18 @@ class MerchantControllerTest {
         request.setPhone("13987654321");
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(merchantService.getMerchantById(TEST_USER_ID)).thenReturn(testMerchant);
-            when(merchantService.updateInfo(any(Merchant.class))).thenReturn(null);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(merchantService.getMerchantById(TEST_USER_ID)).thenReturn(testMerchant);
+        when(merchantService.updateInfo(any(Merchant.class))).thenReturn(null);
 
-            // 执行测试
-            mockMvc.perform(put("/merchant/update")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("更新失败，请检查字段"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/merchant/update")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("更新失败，请检查字段"));
 
         // 验证Service方法调用
         verify(merchantService).getMerchantById(TEST_USER_ID);
@@ -529,17 +520,15 @@ class MerchantControllerTest {
     @DisplayName("删除商家账户 - 成功")
     void testDelete_Success() throws Exception {
         // 模拟UserHolder、Service层和Redis行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(merchantService.deleteMerchant(TEST_USER_ID)).thenReturn(true);
-            when(valueOperations.get("merchant:token:" + TEST_TOKEN)).thenReturn(TEST_USER_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(merchantService.deleteMerchant(TEST_USER_ID)).thenReturn(true);
+        when(valueOperations.get("merchant:token:" + TEST_TOKEN)).thenReturn(TEST_USER_ID);
 
-            // 执行测试
-            mockMvc.perform(delete("/merchant/delete")
-                            .header("Authorization", "Bearer " + TEST_TOKEN))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true));
-        }
+        // 执行测试
+        mockMvc.perform(delete("/merchant/delete")
+                        .header("Authorization", "Bearer " + TEST_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
 
         // 验证Service方法调用
         verify(merchantService).deleteMerchant(TEST_USER_ID);
@@ -555,18 +544,16 @@ class MerchantControllerTest {
     @DisplayName("删除商家账户 - 失败")
     void testDelete_Failed() throws Exception {
         // 模拟UserHolder、Service层和Redis行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(merchantService.deleteMerchant(TEST_USER_ID)).thenReturn(false);
-            when(valueOperations.get("merchant:token:" + TEST_TOKEN)).thenReturn(TEST_USER_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(merchantService.deleteMerchant(TEST_USER_ID)).thenReturn(false);
+        when(valueOperations.get("merchant:token:" + TEST_TOKEN)).thenReturn(TEST_USER_ID);
 
-            // 执行测试
-            mockMvc.perform(delete("/merchant/delete")
-                            .header("Authorization", "Bearer " + TEST_TOKEN))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("注销失败"));
-        }
+        // 执行测试
+        mockMvc.perform(delete("/merchant/delete")
+                        .header("Authorization", "Bearer " + TEST_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("注销失败"));
 
         // 验证Service方法调用
         verify(merchantService).deleteMerchant(TEST_USER_ID);

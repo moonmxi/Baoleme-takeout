@@ -73,7 +73,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestConfig.class)
-class UserControllerTest {
+class UserControllerTest extends BaseControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -378,15 +378,13 @@ class UserControllerTest {
         when(userService.updateInfo(any(User.class))).thenReturn(true);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(post("/user/logout")
-                            .header("Authorization", token))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200));
-        }
+        // 执行测试
+        mockMvc.perform(post("/user/logout")
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
 
         // 验证Mock调用
         verify(redisTemplate, times(2)).delete(anyString());
@@ -413,16 +411,14 @@ class UserControllerTest {
         when(userService.updateInfo(any(User.class))).thenReturn(false);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(post("/user/logout")
-                            .header("Authorization", token))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("登出失败"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/user/logout")
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("登出失败"));
 
         // 验证Mock调用
         verify(userService, times(1)).updateInfo(any(User.class));
@@ -453,17 +449,15 @@ class UserControllerTest {
         when(userService.getInfo(userId)).thenReturn(mockUser);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(get("/user/info"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.data.user_id").value(userId))
-                    .andExpect(jsonPath("$.data.username").value("testuser"))
-                    .andExpect(jsonPath("$.data.phone").value("13800138000"));
-        }
+        // 执行测试
+        mockMvc.perform(get("/user/info"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.user_id").value(userId))
+                .andExpect(jsonPath("$.data.username").value("testuser"))
+                .andExpect(jsonPath("$.data.phone").value("13800138000"));
 
         // 验证Mock调用
         verify(userService, times(1)).getInfo(userId);
@@ -487,15 +481,13 @@ class UserControllerTest {
         when(userService.getInfo(userId)).thenReturn(null);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(get("/user/info"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("用户不存在"));
-        }
+        // 执行测试
+        mockMvc.perform(get("/user/info"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("用户不存在"));
 
         // 验证Mock调用
         verify(userService, times(1)).getInfo(userId);
@@ -533,17 +525,15 @@ class UserControllerTest {
         when(userService.updateInfo(any(User.class))).thenReturn(true);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(put("/user/update")
-                            .header("Authorization", token)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200));
-        }
+        // 执行测试
+        mockMvc.perform(put("/user/update")
+                        .header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
 
         // 验证Mock调用
         verify(userService, times(1)).getInfo(userId);
@@ -580,8 +570,7 @@ class UserControllerTest {
         doNothing().when(valueOperations).set(anyString(), any(), anyLong(), any());
 
         // 使用MockedStatic模拟UserHolder和JwtUtils
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class);
-             MockedStatic<JwtUtils> mockedJwtUtils = Mockito.mockStatic(JwtUtils.class)) {
+        try (MockedStatic<JwtUtils> mockedJwtUtils = Mockito.mockStatic(JwtUtils.class)) {
             
             mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
             mockedJwtUtils.when(() -> JwtUtils.createToken(userId, "user", "newusername"))
@@ -627,18 +616,16 @@ class UserControllerTest {
         when(userService.getInfo(userId)).thenReturn(null);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(put("/user/update")
-                            .header("Authorization", token)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("用户不存在"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/user/update")
+                        .header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("用户不存在"));
 
         // 验证Mock调用
         verify(userService, times(1)).getInfo(userId);
@@ -673,18 +660,16 @@ class UserControllerTest {
         when(userService.updateInfo(any(User.class))).thenReturn(false);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(put("/user/update")
-                            .header("Authorization", token)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("更新失败，请检查字段"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/user/update")
+                        .header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("更新失败，请检查字段"));
 
         // 验证Mock调用
         verify(userService, times(1)).getInfo(userId);
@@ -711,14 +696,12 @@ class UserControllerTest {
         when(userService.delete(userId)).thenReturn(true);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(delete("/user/delete"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200));
-        }
+        // 执行测试
+        mockMvc.perform(delete("/user/delete"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
 
         // 验证Mock调用
         verify(userService, times(1)).delete(userId);
@@ -742,15 +725,13 @@ class UserControllerTest {
         when(userService.delete(userId)).thenReturn(false);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(delete("/user/delete"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("注销失败"));
-        }
+        // 执行测试
+        mockMvc.perform(delete("/user/delete"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("注销失败"));
 
         // 验证Mock调用
         verify(userService, times(1)).delete(userId);
@@ -790,20 +771,18 @@ class UserControllerTest {
                 .thenReturn(mockRecords);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("user");
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("user");
 
-            // 执行测试
-            mockMvc.perform(post("/user/history")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.data.orders").isArray())
-                    .andExpect(jsonPath("$.data.orders[0].order_id").value(1L))
-                    .andExpect(jsonPath("$.data.orders[0].store_name").value("测试店铺"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/user/history")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.orders").isArray())
+                .andExpect(jsonPath("$.data.orders[0].order_id").value(1L))
+                .andExpect(jsonPath("$.data.orders[0].store_name").value("测试店铺"));
 
         // 验证Mock调用
         verify(userService, times(1)).getUserOrdersPaged(eq(userId), eq(1), any(), any(), eq(1), eq(10));
@@ -828,18 +807,16 @@ class UserControllerTest {
         request.setPageSize(10);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant"); // 非用户角色
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant"); // 非用户角色
 
-            // 执行测试
-            mockMvc.perform(post("/user/history")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.message").value("无权限访问，仅普通用户可操作"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/user/history")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value(400))
+            .andExpect(jsonPath("$.message").value("无权限访问，仅普通用户可操作"));
 
         // 验证Mock调用
         verify(userService, never()).getUserOrdersPaged(anyLong(), anyInt(), any(LocalDateTime.class), any(LocalDateTime.class), anyInt(), anyInt());
@@ -869,16 +846,14 @@ class UserControllerTest {
         when(userService.favoriteStore(userId, storeId)).thenReturn(true);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(post("/user/favorite")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200));
-        }
+        // 执行测试
+        mockMvc.perform(post("/user/favorite")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
 
         // 验证Mock调用
         verify(userService, times(1)).favoriteStore(userId, storeId);
@@ -906,17 +881,15 @@ class UserControllerTest {
         when(userService.favoriteStore(userId, storeId)).thenReturn(false);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(post("/user/favorite")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("收藏失败"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/user/favorite")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("收藏失败"));
 
         // 验证Mock调用
         verify(userService, times(1)).favoriteStore(userId, storeId);
@@ -1016,16 +989,14 @@ class UserControllerTest {
         when(orderService.createOrder(userId, request)).thenReturn(mockResponse);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(post("/user/order")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200));
-        }
+        // 执行测试
+        mockMvc.perform(post("/user/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
 
         // 验证Mock调用
         verify(orderService, times(1)).createOrder(userId, request);
@@ -1051,17 +1022,15 @@ class UserControllerTest {
                 .thenThrow(new RuntimeException("库存不足"));
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(post("/user/order")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("下单失败：库存不足"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/user/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("下单失败：库存不足"));
 
         // 验证Mock调用
         verify(orderService, times(1)).createOrder(userId, request);
@@ -1087,14 +1056,12 @@ class UserControllerTest {
         when(userService.cancelAccount(userId)).thenReturn(true);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(delete("/user/cancel"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200));
-        }
+        // 执行测试
+        mockMvc.perform(delete("/user/cancel"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
 
         // 验证Mock调用
         verify(userService, times(1)).cancelAccount(userId);
@@ -1118,15 +1085,13 @@ class UserControllerTest {
         when(userService.cancelAccount(userId)).thenReturn(false);
 
         // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
 
-            // 执行测试
-            mockMvc.perform(delete("/user/cancel"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("注销失败"));
-        }
+        // 执行测试
+        mockMvc.perform(delete("/user/cancel"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("注销失败"));
 
         // 验证Mock调用
         verify(userService, times(1)).cancelAccount(userId);

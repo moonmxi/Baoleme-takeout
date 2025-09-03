@@ -35,6 +35,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import org.springframework.context.annotation.Import;
 import org.demo.baoleme.config.TestConfig;
+import org.demo.baoleme.common.JwtUtils;
+import org.mockito.MockedStatic;
+import org.junit.jupiter.api.AfterEach;
 
 /**
  * AdminController测试类
@@ -42,7 +45,6 @@ import org.demo.baoleme.config.TestConfig;
  * 使用Mockito模拟Service层依赖
  */
 @WebMvcTest(AdminController.class)
-@ContextConfiguration(classes = org.demo.baoleme.TestApplication.class)
 @Import(TestConfig.class)
 class AdminControllerTest {
 
@@ -122,26 +124,34 @@ class AdminControllerTest {
     private org.demo.baoleme.mapper.ReviewMapper reviewMapper;
 
     /**
-     * 模拟的JwtUtils依赖
+     * 模拟的JwtUtils静态方法
      */
-    @MockBean
-    private JwtUtils jwtUtils;
-
-    /**
-     * 模拟的UserHolder依赖
-     */
-    @MockBean
-    private UserHolder userHolder;
+    private MockedStatic<JwtUtils> mockedJwtUtils;
 
     /**
      * 测试前的初始化设置
      * 设置默认的用户角色为管理员
      */
+    private MockedStatic<UserHolder> mockedUserHolder;
+
     @BeforeEach
     void setUp() {
         // 默认设置为管理员角色
-        mockStatic(UserHolder.class);
-        when(UserHolder.getRole()).thenReturn("admin");
+        mockedUserHolder = mockStatic(UserHolder.class);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("admin");
+        
+        // Mock JwtUtils静态方法
+        mockedJwtUtils = mockStatic(JwtUtils.class);
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (mockedUserHolder != null) {
+            mockedUserHolder.close();
+        }
+        if (mockedJwtUtils != null) {
+            mockedJwtUtils.close();
+        }
     }
 
     /**
@@ -164,7 +174,7 @@ class AdminControllerTest {
 
         // 模拟Service层行为
         when(adminService.login(1L, "admin123")).thenReturn(mockAdmin);
-        when(jwtUtils.createToken(1L, "admin", "admin")).thenReturn(mockToken);
+        mockedJwtUtils.when(() -> JwtUtils.createToken(1L, "admin", "admin")).thenReturn(mockToken);
 
         // 执行测试
         mockMvc.perform(post("/admin/login")
@@ -175,8 +185,8 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.data.token").value(mockToken));
 
         // 验证Service方法调用
-        verify(adminService).login(1L, "password");
-        verify(jwtUtils).createToken(1L, "admin", "admin");
+        verify(adminService).login(1L, "admin123");
+        mockedJwtUtils.verify(() -> JwtUtils.createToken(1L, "admin", "admin"));
     }
 
     /**
@@ -203,7 +213,7 @@ class AdminControllerTest {
 
         // 验证Service方法调用
         verify(adminService).login(1L, "wrongpassword");
-        verify(jwtUtils, never()).createToken(anyLong(), anyString(), anyString());
+        mockedJwtUtils.verifyNoInteractions();
     }
 
     /**

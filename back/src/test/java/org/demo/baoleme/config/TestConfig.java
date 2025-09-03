@@ -117,6 +117,24 @@ public class TestConfig {
         return Mockito.mock(org.demo.baoleme.mapper.SaleMapper.class);
     }
 
+    @Bean
+    @Primary
+    public org.demo.baoleme.mapper.MerchantMapper merchantMapper() {
+        return Mockito.mock(org.demo.baoleme.mapper.MerchantMapper.class);
+    }
+
+    @Bean
+    @Primary
+    public org.demo.baoleme.mapper.CouponMapper couponMapper() {
+        return Mockito.mock(org.demo.baoleme.mapper.CouponMapper.class);
+    }
+
+    @Bean
+    @Primary
+    public org.demo.baoleme.mapper.OrderItemMapper orderItemMapper() {
+        return Mockito.mock(org.demo.baoleme.mapper.OrderItemMapper.class);
+    }
+
     /**
      * 配置测试环境的密码编码器
      *

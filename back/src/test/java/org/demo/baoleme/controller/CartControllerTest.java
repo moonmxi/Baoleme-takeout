@@ -9,6 +9,7 @@
 package org.demo.baoleme.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.demo.baoleme.controller.BaseControllerTest;
 import org.demo.baoleme.dto.request.cart.AddToCartRequest;
 import org.demo.baoleme.dto.request.cart.DeleteCartRequest;
 import org.demo.baoleme.dto.request.cart.UpdateCartRequest;
@@ -34,6 +35,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.mockito.MockedStatic;
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.context.annotation.Import;
 import org.demo.baoleme.config.TestConfig;
 
@@ -43,9 +46,8 @@ import org.demo.baoleme.config.TestConfig;
  * 使用Mockito模拟Service层依赖
  */
 @WebMvcTest(CartController.class)
-@ContextConfiguration(classes = org.demo.baoleme.TestApplication.class)
 @Import(TestConfig.class)
-class CartControllerTest {
+class CartControllerTest extends BaseControllerTest {
 
     /**
      * MockMvc实例，用于模拟HTTP请求
@@ -86,14 +88,12 @@ class CartControllerTest {
     private static final Long TEST_USER_ID = 1L;
 
     /**
-     * 测试前的初始化设置
      * 设置默认的用户ID
      */
     @BeforeEach
     void setUp() {
         // 模拟UserHolder返回测试用户ID
-        mockStatic(UserHolder.class);
-        when(UserHolder.getId()).thenReturn(TEST_USER_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
     }
 
     /**
@@ -233,8 +233,8 @@ class CartControllerTest {
         request.setProductId(1L);
         request.setQuantity(3);
 
-        // 模拟Service层行为（void方法，无需返回值）
-        doNothing().when(cartService).updateCart(TEST_USER_ID, request);
+        // 模拟Service层行为
+        when(cartService.updateCart(TEST_USER_ID, request)).thenReturn(true);
 
         // 执行测试
         mockMvc.perform(put("/cart/update")
@@ -284,8 +284,8 @@ class CartControllerTest {
         request.setProductId(1L);
         request.setQuantity(0);
 
-        // 模拟Service层行为（void方法，无需返回值）
-        doNothing().when(cartService).updateCart(TEST_USER_ID, request);
+        // 模拟Service层行为
+        when(cartService.updateCart(TEST_USER_ID, request)).thenReturn(true);
 
         // 执行测试
         mockMvc.perform(put("/cart/update")

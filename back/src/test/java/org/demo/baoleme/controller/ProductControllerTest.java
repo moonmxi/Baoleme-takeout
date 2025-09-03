@@ -52,7 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestConfig.class)
-class ProductControllerTest {
+class ProductControllerTest extends BaseControllerTest {
 
     /**
      * MockMvc实例，用于模拟HTTP请求
@@ -180,20 +180,18 @@ class ProductControllerTest {
         request.setImage("http://example.com/new-product.jpg");
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID)).thenReturn(true);
-            when(productService.createProduct(any(Product.class))).thenReturn(testProduct);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID)).thenReturn(true);
+        when(productService.createProduct(any(Product.class))).thenReturn(testProduct);
 
-            // 执行测试
-            mockMvc.perform(post("/product/create")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data.product_id").value(TEST_PRODUCT_ID));
-        }
+        // 执行测试
+        mockMvc.perform(post("/product/create")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.product_id").value(TEST_PRODUCT_ID));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID);
@@ -215,19 +213,17 @@ class ProductControllerTest {
         request.setStock(50);
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID)).thenReturn(false);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID)).thenReturn(false);
 
-            // 执行测试
-            mockMvc.perform(post("/product/create")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("商品创建失败，商家没有权限"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/product/create")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("商品创建失败，商家没有权限"));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID);
@@ -249,20 +245,18 @@ class ProductControllerTest {
         request.setStock(50);
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID)).thenReturn(true);
-            when(productService.createProduct(any(Product.class))).thenReturn(null);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID)).thenReturn(true);
+        when(productService.createProduct(any(Product.class))).thenReturn(null);
 
-            // 执行测试
-            mockMvc.perform(post("/product/create")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("商品创建失败，请检查输入参数"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/product/create")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("商品创建失败，请检查输入参数"));
 
         // 验证Service方法调用
         verify(productService).createProduct(any(Product.class));
@@ -283,21 +277,19 @@ class ProductControllerTest {
         request.setStoreId(TEST_STORE_ID);
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(productService.getProductById(TEST_PRODUCT_ID)).thenReturn(testProduct);
-            when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID)).thenReturn(true);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(productService.getProductById(TEST_PRODUCT_ID)).thenReturn(testProduct);
+        when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID)).thenReturn(true);
 
-            // 执行测试
-            mockMvc.perform(post("/product/view")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-    
-                    .andExpect(jsonPath("$.data.name").value("测试商品"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/product/view")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+
+                .andExpect(jsonPath("$.data.name").value("测试商品"));
 
         // 验证Service方法调用
         verify(productService).getProductById(TEST_PRODUCT_ID);
@@ -354,24 +346,22 @@ class ProductControllerTest {
         page.setCount(1);
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID)).thenReturn(true);
-            when(productService.getProductsByStore(TEST_STORE_ID, 1, 10)).thenReturn(page);
-            when(salesStatsService.getProductVolume(TEST_PRODUCT_ID)).thenReturn(100);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID)).thenReturn(true);
+        when(productService.getProductsByStore(TEST_STORE_ID, 1, 10)).thenReturn(page);
+        when(salesStatsService.getProductVolume(TEST_PRODUCT_ID)).thenReturn(100);
 
-            // 执行测试
-            mockMvc.perform(post("/product/store-products")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data.products").isArray())
-                    .andExpect(jsonPath("$.data.current_page").value(1))
-                .andExpect(jsonPath("$.data.total_pages").value(1))
-                .andExpect(jsonPath("$.data.total_items").value(1));
-        }
+        // 执行测试
+        mockMvc.perform(post("/product/store-products")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.products").isArray())
+                .andExpect(jsonPath("$.data.current_page").value(1))
+            .andExpect(jsonPath("$.data.total_pages").value(1))
+            .andExpect(jsonPath("$.data.total_items").value(1));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID);
@@ -393,19 +383,17 @@ class ProductControllerTest {
         request.setPageSize(10);
 
         // 模拟UserHolder和Service层行为
-        try (MockedStatic<UserHolder> mockedUserHolder = mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-            when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID)).thenReturn(false);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
+        when(storeService.validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID)).thenReturn(false);
 
-            // 执行测试
-            mockMvc.perform(post("/product/store-products")
-                            .header("Authorization", "Bearer " + TEST_TOKEN)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(false))
-                    .andExpect(jsonPath("$.message").value("商品创建失败，商家没有权限"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/product/store-products")
+                        .header("Authorization", "Bearer " + TEST_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("商品创建失败，商家没有权限"));
 
         // 验证Service方法调用
         verify(storeService).validateStoreOwnership(TEST_STORE_ID, TEST_USER_ID);

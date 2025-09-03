@@ -67,7 +67,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestConfig.class)
-class OrderControllerTest {
+class OrderControllerTest extends BaseControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -166,21 +166,19 @@ class OrderControllerTest {
         // 配置Mock行为
         when(orderService.getAvailableOrders(anyInt(), anyInt())).thenReturn(mockOrders);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
-            // 执行测试
-            mockMvc.perform(get("/orders/available")
-                            .param("page", "1")
-                            .param("page_size", "10"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.data.orders").isArray())
-                    .andExpect(jsonPath("$.data.orders[0].id").value(100L))
-                    .andExpect(jsonPath("$.data.orders[0].totalPrice").value(50.00));
-        }
+        // 执行测试
+        mockMvc.perform(get("/orders/available")
+                        .param("page", "1")
+                        .param("page_size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.orders").isArray())
+                .andExpect(jsonPath("$.data.orders[0].id").value(100L))
+                .andExpect(jsonPath("$.data.orders[0].totalPrice").value(50.00));
 
         // 验证Mock调用
         verify(orderService, times(1)).getAvailableOrders(1, 10);
@@ -200,19 +198,17 @@ class OrderControllerTest {
         // 准备测试数据
         Long userId = 1L;
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非骑手角色
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非骑手角色
 
-            // 执行测试
-            mockMvc.perform(get("/orders/available")
-                            .param("page", "1")
-                            .param("page_size", "10"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
-        }
+        // 执行测试
+        mockMvc.perform(get("/orders/available")
+                        .param("page", "1")
+                        .param("page_size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
 
         // 验证Mock调用 - 不应该调用服务
         verify(orderService, never()).getAvailableOrders(anyInt(), anyInt());
@@ -236,19 +232,17 @@ class OrderControllerTest {
         when(orderService.getAvailableOrders(anyInt(), anyInt()))
                 .thenThrow(new RuntimeException("数据库连接失败"));
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
-            // 执行测试
-            mockMvc.perform(get("/orders/available")
-                            .param("page", "1")
-                            .param("page_size", "10"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("获取可用订单失败：数据库连接失败"));
-        }
+        // 执行测试
+        mockMvc.perform(get("/orders/available")
+                        .param("page", "1")
+                        .param("page_size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("获取可用订单失败：数据库连接失败"));
 
         // 验证Mock调用
         verify(orderService, times(1)).getAvailableOrders(1, 10);
@@ -277,19 +271,17 @@ class OrderControllerTest {
         // 配置Mock行为
         when(orderService.grabOrder(orderId, riderId)).thenReturn(true);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
-            // 执行测试
-            mockMvc.perform(put("/orders/grab")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.data.orderId").value(orderId));
-        }
+        // 执行测试
+        mockMvc.perform(put("/orders/grab")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.orderId").value(orderId));
 
         // 验证Mock调用
         verify(orderService, times(1)).grabOrder(orderId, riderId);
@@ -316,19 +308,17 @@ class OrderControllerTest {
         // 配置Mock行为 - 抢单失败
         when(orderService.grabOrder(orderId, riderId)).thenReturn(false);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
-            // 执行测试
-            mockMvc.perform(put("/orders/grab")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("订单已被抢或不存在"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/orders/grab")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("订单已被抢或不存在"));
 
         // 验证Mock调用
         verify(orderService, times(1)).grabOrder(orderId, riderId);
@@ -352,19 +342,17 @@ class OrderControllerTest {
         OrderGrabRequest request = new OrderGrabRequest();
         request.setOrderId(orderId);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非骑手角色
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非骑手角色
 
-            // 执行测试
-            mockMvc.perform(put("/orders/grab")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/orders/grab")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
 
         // 验证Mock调用 - 不应该调用服务
         verify(orderService, never()).grabOrder(anyLong(), anyLong());
@@ -393,20 +381,18 @@ class OrderControllerTest {
         // 配置Mock行为
         when(orderService.riderCancelOrder(orderId, riderId)).thenReturn(true);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
-            // 执行测试
-            mockMvc.perform(put("/orders/cancel")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.data.order_id").value(orderId))
-                    .andExpect(jsonPath("$.data.status").value("CANCELLED"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/orders/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.order_id").value(orderId))
+                .andExpect(jsonPath("$.data.status").value("CANCELLED"));
 
         // 验证Mock调用
         verify(orderService, times(1)).riderCancelOrder(orderId, riderId);
@@ -433,19 +419,17 @@ class OrderControllerTest {
         // 配置Mock行为 - 取消失败
         when(orderService.riderCancelOrder(orderId, riderId)).thenReturn(false);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
-            // 执行测试
-            mockMvc.perform(put("/orders/cancel")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("当前状态不可取消或订单不存在"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/orders/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("当前状态不可取消或订单不存在"));
 
         // 验证Mock调用
         verify(orderService, times(1)).riderCancelOrder(orderId, riderId);
@@ -469,19 +453,17 @@ class OrderControllerTest {
         OrderCancelRequest request = new OrderCancelRequest();
         request.setOrderId(orderId);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant"); // 非骑手角色
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant"); // 非骑手角色
 
-            // 执行测试
-            mockMvc.perform(put("/orders/cancel")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/orders/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
 
         // 验证Mock调用 - 不应该调用服务
         verify(orderService, never()).riderCancelOrder(anyLong(), anyLong());
@@ -512,20 +494,18 @@ class OrderControllerTest {
         // 配置Mock行为
         when(orderService.riderUpdateOrderStatus(orderId, riderId, targetStatus)).thenReturn(true);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
-            // 执行测试
-            mockMvc.perform(post("/orders/rider-update-status")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.data.orderId").value(orderId))
-                    .andExpect(jsonPath("$.data.status").value(targetStatus));
-        }
+        // 执行测试
+        mockMvc.perform(post("/orders/rider-update-status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.orderId").value(orderId))
+                .andExpect(jsonPath("$.data.status").value(targetStatus));
 
         // 验证Mock调用
         verify(orderService, times(1)).riderUpdateOrderStatus(orderId, riderId, targetStatus);
@@ -554,19 +534,17 @@ class OrderControllerTest {
         // 配置Mock行为 - 更新失败
         when(orderService.riderUpdateOrderStatus(orderId, riderId, targetStatus)).thenReturn(false);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
-            // 执行测试
-            mockMvc.perform(post("/orders/rider-update-status")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("订单状态更新失败"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/orders/rider-update-status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("订单状态更新失败"));
 
         // 验证Mock调用
         verify(orderService, times(1)).riderUpdateOrderStatus(orderId, riderId, targetStatus);
@@ -592,19 +570,17 @@ class OrderControllerTest {
         request.setOrderId(orderId);
         request.setTargetStatus(targetStatus);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非骑手角色
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非骑手角色
 
-            // 执行测试
-            mockMvc.perform(post("/orders/rider-update-status")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/orders/rider-update-status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
 
         // 验证Mock调用 - 不应该调用服务
         verify(orderService, never()).riderUpdateOrderStatus(anyLong(), anyLong(), anyInt());
@@ -637,21 +613,19 @@ class OrderControllerTest {
         // 配置Mock行为
         when(orderService.getRiderOrders(eq(riderId), any(), any(), any(), anyInt(), anyInt())).thenReturn(mockOrders);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
-            // 执行测试
-            mockMvc.perform(post("/orders/rider-history-query")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RiderOrderHistoryQueryRequest())))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.data.orders").isArray())
-                    .andExpect(jsonPath("$.data.orders[0].orderId").value(100L))
-                    .andExpect(jsonPath("$.data.orders[0].status").value(2));
-        }
+        // 执行测试
+        mockMvc.perform(post("/orders/rider-history-query")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RiderOrderHistoryQueryRequest())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.orders").isArray())
+                .andExpect(jsonPath("$.data.orders[0].orderId").value(100L))
+                .andExpect(jsonPath("$.data.orders[0].status").value(2));
 
         // 验证Mock调用
         verify(orderService, times(1)).getRiderOrders(eq(riderId), any(), any(), any(), anyInt(), anyInt());
@@ -671,19 +645,17 @@ class OrderControllerTest {
         // 准备测试数据
         Long userId = 1L;
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant"); // 非骑手角色
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant"); // 非骑手角色
 
-            // 执行测试
-            mockMvc.perform(post("/orders/rider-history-query")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RiderOrderHistoryQueryRequest())))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/orders/rider-history-query")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RiderOrderHistoryQueryRequest())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
 
         // 验证Mock调用 - 不应该调用服务
         verify(orderService, never()).getRiderOrders(any(), any(), any(), any(), anyInt(), anyInt());
@@ -707,19 +679,17 @@ class OrderControllerTest {
         when(orderService.getRiderOrders(eq(riderId), any(), any(), any(), anyInt(), anyInt()))
                 .thenThrow(new RuntimeException("数据库查询失败"));
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
-            // 执行测试
-            mockMvc.perform(post("/orders/rider-history-query")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RiderOrderHistoryQueryRequest())))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("获取骑手订单失败：数据库查询失败"));
-        }
+        // 执行测试
+        mockMvc.perform(post("/orders/rider-history-query")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RiderOrderHistoryQueryRequest())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("获取骑手订单失败：数据库查询失败"));
 
         // 验证Mock调用
         verify(orderService, times(1)).getRiderOrders(eq(riderId), any(), any(), any(), anyInt(), anyInt());
@@ -749,19 +719,17 @@ class OrderControllerTest {
         // 配置Mock行为
         when(orderService.getRiderEarnings(riderId)).thenReturn(mockEarnings);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
-            // 执行测试
-            mockMvc.perform(get("/orders/rider-earnings"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.data.totalEarnings").value(500.00))
-                    .andExpect(jsonPath("$.data.currentMonth").value(50.00))
-                    .andExpect(jsonPath("$.data.completedOrders").value(25));
-        }
+        // 执行测试
+        mockMvc.perform(get("/orders/rider-earnings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.totalEarnings").value(500.00))
+                .andExpect(jsonPath("$.data.currentMonth").value(50.00))
+                .andExpect(jsonPath("$.data.completedOrders").value(25));
 
         // 验证Mock调用
         verify(orderService, times(1)).getRiderEarnings(riderId);
@@ -781,17 +749,15 @@ class OrderControllerTest {
         // 准备测试数据
         Long userId = 1L;
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非骑手角色
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非骑手角色
 
-            // 执行测试
-            mockMvc.perform(get("/orders/rider-earnings"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(500))
-                    .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
-        }
+        // 执行测试
+        mockMvc.perform(get("/orders/rider-earnings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
 
         // 验证Mock调用 - 不应该调用服务
         verify(orderService, never()).getRiderEarnings(any());
@@ -815,17 +781,15 @@ class OrderControllerTest {
         when(orderService.getRiderEarnings(riderId))
                 .thenThrow(new RuntimeException("统计计算失败"));
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
-            // 执行测试
-            mockMvc.perform(get("/orders/rider-earnings"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("获取收入统计失败：统计计算失败"));
-        }
+        // 执行测试
+        mockMvc.perform(get("/orders/rider-earnings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("获取收入统计失败：统计计算失败"));
 
         // 验证Mock调用
         verify(orderService, times(1)).getRiderEarnings(riderId);
@@ -858,21 +822,19 @@ class OrderControllerTest {
         when(orderService.updateOrderByMerchant(merchantId, orderId, newStatus))
                 .thenReturn(true);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(merchantId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(merchantId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
 
-            // 执行测试
-            mockMvc.perform(put("/orders/merchant-update")
-                            .header("Authorization", "Bearer test-token")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.data.id").value(orderId))
-                    .andExpect(jsonPath("$.data.newStatus").value(newStatus));
-        }
+        // 执行测试
+        mockMvc.perform(put("/orders/merchant-update")
+                        .header("Authorization", "Bearer test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.id").value(orderId))
+                .andExpect(jsonPath("$.data.newStatus").value(newStatus));
 
         // 验证Mock调用
         verify(orderService, times(1)).updateOrderByMerchant(merchantId, orderId, newStatus);
@@ -904,21 +866,19 @@ class OrderControllerTest {
         when(orderService.updateOrderByMerchant(merchantId, orderId, newStatus))
                 .thenReturn(true);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(merchantId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(merchantId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
 
-            // 执行测试
-            mockMvc.perform(put("/orders/merchant-update")
-                            .header("Authorization", "Bearer test-token")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(200))
-                    .andExpect(jsonPath("$.data.id").value(orderId))
-                    .andExpect(jsonPath("$.data.newStatus").value(newStatus));
-        }
+        // 执行测试
+        mockMvc.perform(put("/orders/merchant-update")
+                        .header("Authorization", "Bearer test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.id").value(orderId))
+                .andExpect(jsonPath("$.data.newStatus").value(newStatus));
 
         // 验证Mock调用
         verify(orderService, times(1)).updateOrderByMerchant(merchantId, orderId, newStatus);
@@ -948,20 +908,18 @@ class OrderControllerTest {
         when(orderService.updateOrderByMerchant(merchantId, orderId, newStatus))
                 .thenReturn(false);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(merchantId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(merchantId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
 
-            // 执行测试
-            mockMvc.perform(put("/orders/merchant-update")
-                            .header("Authorization", "Bearer test-token")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("订单更新失败：权限不足或订单不存在"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/orders/merchant-update")
+                        .header("Authorization", "Bearer test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("订单更新失败：权限不足或订单不存在"));
 
         // 验证Mock调用
         verify(orderService, times(1)).updateOrderByMerchant(merchantId, orderId, newStatus);
@@ -987,20 +945,18 @@ class OrderControllerTest {
         request.setId(orderId);
         request.setNewStatus(newStatus);
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非商家角色
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(userId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("user"); // 非商家角色
 
-            // 执行测试
-            mockMvc.perform(put("/orders/merchant-update")
-                            .header("Authorization", "Bearer test-token")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("无权限访问，仅商家可操作"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/orders/merchant-update")
+                        .header("Authorization", "Bearer test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("无权限访问，仅商家可操作"));
 
         // 验证Mock调用 - 不应该调用服务
         verify(orderService, never()).updateOrderByMerchant(any(), any(), any());
@@ -1030,20 +986,18 @@ class OrderControllerTest {
         when(orderService.updateOrderByMerchant(merchantId, orderId, newStatus))
                 .thenThrow(new RuntimeException("数据库更新失败"));
 
-        // 使用MockedStatic模拟UserHolder
-        try (MockedStatic<UserHolder> mockedUserHolder = Mockito.mockStatic(UserHolder.class)) {
-            mockedUserHolder.when(UserHolder::getId).thenReturn(merchantId);
-            mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
+        // 使用继承的mockedUserHolder模拟UserHolder
+        mockedUserHolder.when(UserHolder::getId).thenReturn(merchantId);
+        mockedUserHolder.when(UserHolder::getRole).thenReturn("merchant");
 
-            // 执行测试
-            mockMvc.perform(put("/orders/merchant-update")
-                            .header("Authorization", "Bearer test-token")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.code").value(400))
-                    .andExpect(jsonPath("$.message").value("订单状态更新失败：数据库更新失败"));
-        }
+        // 执行测试
+        mockMvc.perform(put("/orders/merchant-update")
+                        .header("Authorization", "Bearer test-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("订单状态更新失败：数据库更新失败"));
 
         // 验证Mock调用
         verify(orderService, times(1)).updateOrderByMerchant(merchantId, orderId, newStatus);

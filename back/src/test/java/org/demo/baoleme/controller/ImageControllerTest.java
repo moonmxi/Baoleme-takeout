@@ -8,6 +8,7 @@
  */
 package org.demo.baoleme.controller;
 
+import org.demo.baoleme.controller.BaseControllerTest;
 import org.demo.baoleme.service.*;
 import org.demo.baoleme.common.UserHolder;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +27,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.mockito.MockedStatic;
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.context.annotation.Import;
 import org.demo.baoleme.config.TestConfig;
 
@@ -35,13 +38,12 @@ import org.demo.baoleme.config.TestConfig;
  * 使用Mockito模拟Service层依赖
  */
 @WebMvcTest(ImageController.class)
-@ContextConfiguration(classes = org.demo.baoleme.TestApplication.class)
 @Import(TestConfig.class)
 @TestPropertySource(properties = {
         "file.storage.upload-dir=/tmp/test-uploads",
         "file.storage.base-url=http://localhost:8080/uploads/"
 })
-class ImageControllerTest {
+class ImageControllerTest extends BaseControllerTest {
 
     /**
      * MockMvc实例，用于模拟HTTP请求
@@ -136,14 +138,12 @@ class ImageControllerTest {
     private static final Long TEST_USER_ID = 1L;
 
     /**
-     * 测试前的初始化设置
      * 设置默认的用户ID
      */
     @BeforeEach
     void setUp() {
         // 模拟UserHolder返回测试用户ID
-        mockStatic(UserHolder.class);
-        when(UserHolder.getId()).thenReturn(TEST_USER_ID);
+        mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
     }
 
     // ==================== 骑手头像上传测试 ====================
