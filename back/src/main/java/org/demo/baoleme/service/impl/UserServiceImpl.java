@@ -45,8 +45,6 @@ public class UserServiceImpl implements UserService {
 
     private Logger log;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-    @Autowired
-    private SalesStatsServiceImpl salesStatsServiceImpl;
 
     // 用户核心功能保持不变
     @Override

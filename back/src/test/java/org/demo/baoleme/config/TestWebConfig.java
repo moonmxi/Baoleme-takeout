@@ -1,27 +1,30 @@
-// src/main/java/org/demo/baoleme/config/WebConfig.java
-package org.demo.baoleme.config;
-
-import org.demo.baoleme.common.JwtInterceptor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
 /**
- * Web配置类
- * 配置Web MVC相关组件，包括拦截器等
+ * 测试环境Web配置类
+ * 专门为测试环境配置拦截器
  * 
  * @author Baoleme Team
  * @version 1.0
  * @since 2025-01-25
  */
-@Configuration
-@Profile("!test")  // 非测试环境才启用此配置
-public class WebConfig implements WebMvcConfigurer {
+package org.demo.baoleme.config;
+
+import org.demo.baoleme.common.JwtInterceptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+/**
+ * 测试环境Web配置类
+ * 在测试环境中注册Mock的JwtInterceptor
+ */
+@TestConfiguration
+@Profile("test")
+public class TestWebConfig implements WebMvcConfigurer {
 
     /**
-     * JWT拦截器
+     * JWT拦截器（在测试中会被Mock）
      */
     @Autowired
     private JwtInterceptor jwtInterceptor;

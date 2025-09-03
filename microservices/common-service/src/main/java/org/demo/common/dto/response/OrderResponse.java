@@ -8,6 +8,8 @@
  */
 package org.demo.common.dto.response;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -17,8 +19,10 @@ import java.util.List;
 /**
  * 订单响应类
  * 包含订单的详细信息
+ * 使用下划线命名策略以匹配前端期望的JSON格式
  */
 @Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class OrderResponse {
 
     /**
@@ -101,6 +105,7 @@ public class OrderResponse {
      * 订单项响应类
      */
     @Data
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class OrderItemResponse {
         /**
          * 商品ID

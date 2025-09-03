@@ -50,7 +50,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<User> getAllUsersPaged(int page, int pageSize,String keyword ,String gender, Long startId, Long endId) {
+    public List<User> getAllUsersPaged(int page, int pageSize, String keyword, String gender, Long startId, Long endId) {
         int offset = (page - 1) * pageSize;
         return userMapper.selectUsersPaged(keyword, gender, startId, endId, offset, pageSize);
     }
