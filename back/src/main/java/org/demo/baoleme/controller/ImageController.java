@@ -270,7 +270,7 @@ public class ImageController {
     @PostMapping("/upload-store-image")
     public CommonResponse uploadStoreImage(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("storeId") Long storeId) {
+            @RequestParam(value = "storeId", required = false) Long storeId) {
         if (file.isEmpty()) {
             return ResponseBuilder.fail("上传文件不能为空");
         }
@@ -319,7 +319,7 @@ public class ImageController {
      */
     @PostMapping("/upload-product-image")
     public CommonResponse uploadProductImage(@RequestParam("file") MultipartFile file,
-                                             @RequestParam("productId") Long productId) {
+                                             @RequestParam(value = "productId", required = false) Long productId) {
         if (file.isEmpty()) {
             return ResponseBuilder.fail("上传文件不能为空");
         }

@@ -46,7 +46,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/user/login",
                         "/admin/login",
                         "/error",
-                        "/images/**"    // 静态资源路径
+                        "/images/**",   // 静态资源路径
+                        "/image/**"     // 图片上传接口路径
                 );
     }
 }

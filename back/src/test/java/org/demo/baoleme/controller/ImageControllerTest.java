@@ -31,14 +31,23 @@ import org.mockito.MockedStatic;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.context.annotation.Import;
 import org.demo.baoleme.config.TestConfig;
+import org.demo.baoleme.config.TestWebConfig;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 
 /**
  * ImageController测试类
  * 使用MockMvc进行Web层测试，模拟HTTP请求和响应
  * 使用Mockito模拟Service层依赖
  */
-@WebMvcTest(ImageController.class)
-@Import(TestConfig.class)
+@WebMvcTest(value = ImageController.class, excludeAutoConfiguration = {
+        org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
+        org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration.class
+})
+@Import({TestConfig.class})
+@ActiveProfiles("test")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = {
         "file.storage.upload-dir=/tmp/test-uploads",
         "file.storage.base-url=http://localhost:8080/uploads/"
@@ -87,8 +96,7 @@ class ImageControllerTest extends BaseControllerTest {
     @MockBean
     private UserHolder userHolder;
 
-    @MockBean
-    private org.demo.baoleme.common.JwtInterceptor jwtInterceptor;
+
 
     /**
      * Mock RiderMapper to avoid MyBatis configuration conflicts
@@ -144,8 +152,6 @@ class ImageControllerTest extends BaseControllerTest {
     void setUp() throws Exception {
         // 模拟UserHolder返回测试用户ID
         mockedUserHolder.when(UserHolder::getId).thenReturn(TEST_USER_ID);
-        // Mock JwtInterceptor让所有请求通过
-        when(jwtInterceptor.preHandle(any(), any(), any())).thenReturn(true);
     }
 
     // ==================== 骑手头像上传测试 ====================

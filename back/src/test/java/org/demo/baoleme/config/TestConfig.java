@@ -202,6 +202,4 @@ public class TestConfig {
         return Mockito.mock(JwtUtils.class);
     }
 
-    // JwtInterceptor的Mock在各个测试类中使用@MockBean注解单独配置
-    // 避免与TestWebConfig中的Bean定义冲突
 }
