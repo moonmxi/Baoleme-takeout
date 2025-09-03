@@ -185,8 +185,8 @@ class OrderControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.orders").isArray())
-                .andExpect(jsonPath("$.data.orders[0].id").value(100L))
-                .andExpect(jsonPath("$.data.orders[0].totalPrice").value(50.00));
+                .andExpect(jsonPath("$.data.orders[0].order_id").value(100L))
+                .andExpect(jsonPath("$.data.orders[0].total_amount").value(50.00));
 
         // 验证Mock调用
         verify(orderService, times(1)).getAvailableOrders(1, 10);
@@ -289,7 +289,7 @@ class OrderControllerTest extends BaseControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.orderId").value(orderId));
+                .andExpect(jsonPath("$.data.order_id").value(orderId));
 
         // 验证Mock调用
         verify(orderService, times(1)).grabOrder(orderId, riderId);
@@ -512,7 +512,7 @@ class OrderControllerTest extends BaseControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.orderId").value(orderId))
+                .andExpect(jsonPath("$.data.order_id").value(orderId))
                 .andExpect(jsonPath("$.data.status").value(targetStatus));
 
         // 验证Mock调用
@@ -625,14 +625,19 @@ class OrderControllerTest extends BaseControllerTest {
         mockedUserHolder.when(UserHolder::getId).thenReturn(riderId);
         mockedUserHolder.when(UserHolder::getRole).thenReturn("rider");
 
+        // 准备请求对象
+        RiderOrderHistoryQueryRequest request = new RiderOrderHistoryQueryRequest();
+        request.setPage(1);
+        request.setPageSize(10);
+
         // 执行测试
         mockMvc.perform(post("/orders/rider-history-query")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new RiderOrderHistoryQueryRequest())))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.orders").isArray())
-                .andExpect(jsonPath("$.data.orders[0].orderId").value(100L))
+                .andExpect(jsonPath("$.data.orders[0].order_id").value(100L))
                 .andExpect(jsonPath("$.data.orders[0].status").value(2));
 
         // 验证Mock调用
@@ -682,6 +687,9 @@ class OrderControllerTest extends BaseControllerTest {
     void testGetRiderOrders_Exception() throws Exception {
         // 准备测试数据
         Long riderId = 1L;
+        RiderOrderHistoryQueryRequest request = new RiderOrderHistoryQueryRequest();
+        request.setPage(1);
+        request.setPageSize(10);
 
         // 配置Mock行为 - 抛出异常
         when(orderService.getRiderOrders(eq(riderId), any(), any(), any(), anyInt(), anyInt()))
@@ -694,10 +702,10 @@ class OrderControllerTest extends BaseControllerTest {
         // 执行测试
         mockMvc.perform(post("/orders/rider-history-query")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new RiderOrderHistoryQueryRequest())))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.message").value("获取骑手订单失败：数据库查询失败"));
+                .andExpect(jsonPath("$.message").value("获取骑手订单记录失败：数据库查询失败"));
 
         // 验证Mock调用
         verify(orderService, times(1)).getRiderOrders(eq(riderId), any(), any(), any(), anyInt(), anyInt());
@@ -719,10 +727,9 @@ class OrderControllerTest extends BaseControllerTest {
         // 准备测试数据
         Long riderId = 1L;
         Map<String, Object> mockEarnings = new HashMap<>();
-        mockEarnings.put("totalEarnings", new BigDecimal("500.00"));
-        mockEarnings.put("todayEarnings", new BigDecimal("50.00"));
-        mockEarnings.put("completedOrders", 25);
-        mockEarnings.put("todayOrders", 3);
+        mockEarnings.put("total_earnings", new BigDecimal("500.00"));
+        mockEarnings.put("current_month", new BigDecimal("50.00"));
+        mockEarnings.put("completed_orders", 25);
 
         // 配置Mock行为
         when(orderService.getRiderEarnings(riderId)).thenReturn(mockEarnings);
@@ -735,9 +742,9 @@ class OrderControllerTest extends BaseControllerTest {
         mockMvc.perform(get("/orders/rider-earnings"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.totalEarnings").value(500.00))
-                .andExpect(jsonPath("$.data.currentMonth").value(50.00))
-                .andExpect(jsonPath("$.data.completedOrders").value(25));
+                .andExpect(jsonPath("$.data.total_earnings").value(500.00))
+                .andExpect(jsonPath("$.data.current_month").value(50.00))
+                .andExpect(jsonPath("$.data.completed_orders").value(25));
 
         // 验证Mock调用
         verify(orderService, times(1)).getRiderEarnings(riderId);
@@ -764,7 +771,7 @@ class OrderControllerTest extends BaseControllerTest {
         // 执行测试
         mockMvc.perform(get("/orders/rider-earnings"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.message").value("无权限访问，仅骑手可操作"));
 
         // 验证Mock调用 - 不应该调用服务
@@ -842,7 +849,7 @@ class OrderControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.id").value(orderId))
-                .andExpect(jsonPath("$.data.newStatus").value(newStatus));
+                .andExpect(jsonPath("$.data.new_status").value(newStatus));
 
         // 验证Mock调用
         verify(orderService, times(1)).updateOrderByMerchant(merchantId, orderId, newStatus);
@@ -886,7 +893,7 @@ class OrderControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.id").value(orderId))
-                .andExpect(jsonPath("$.data.newStatus").value(newStatus));
+                .andExpect(jsonPath("$.data.new_status").value(newStatus));
 
         // 验证Mock调用
         verify(orderService, times(1)).updateOrderByMerchant(merchantId, orderId, newStatus);
@@ -1005,7 +1012,7 @@ class OrderControllerTest extends BaseControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.message").value("订单状态更新失败：数据库更新失败"));
+                .andExpect(jsonPath("$.message").value("订单更新失败：数据库更新失败"));
 
         // 验证Mock调用
         verify(orderService, times(1)).updateOrderByMerchant(merchantId, orderId, newStatus);
